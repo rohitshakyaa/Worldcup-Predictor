@@ -44,7 +44,7 @@ before a feature existed (`migration_admin.sql`, `migration_bracket.sql`,
 
 After seeding, set the admin email so the database recognises your admin account:
 ```sql
-update public.app_config set value = 'you@example.com' where key = 'admin_email';
+update public.app_config set value = 'admin@worldcup.com' where key = 'admin_email';
 ```
 This must match `VITE_ADMIN_EMAIL` (below). The client flag only toggles admin
 **UI**; the database independently enforces admin writes via `is_admin()`.
@@ -57,7 +57,7 @@ Fill in:
 ```
 VITE_SUPABASE_URL=https://<your-ref>.supabase.co
 VITE_SUPABASE_ANON_KEY=<your anon/public key>
-VITE_ADMIN_EMAIL=you@example.com
+VITE_ADMIN_EMAIL=admin@worldcup.com
 # VITE_RESULTS_URL=./wc2026_matches.json   # optional override
 ```
 
@@ -146,17 +146,22 @@ redeploy. Whatever the admin saves is authoritative.
 
 ## Demo data
 
-`seed.sql` includes an optional, clearly-delimited **DEMO DATA** block: two
-players in a "Demo League" with seeded group-stage predictions.
+`seed.sql` includes an optional, clearly-delimited **DEMO DATA** block: an admin,
+two players in a "Demo League", and seeded group-stage predictions.
 
-- **Login:** `test@example.com` / `rohit@example.com` — password **`demo1234`**
+All demo accounts use password **`Worldcup123`**:
+- **Admin:** `admin@worldcup.com`
+- **Players:** `priyanka@worldcup.com` · `rohit@worldcup.com`
 - **Invite code:** `DEMO26`
 
-Delete that block before a clean production seed.
+`admin@worldcup.com` is the admin because it matches `app_config.admin_email`
+(seeded) and your `VITE_ADMIN_EMAIL`. Delete the DEMO block before a clean
+production seed.
 
-> Note: directly seeding `auth.users` depends on Supabase's auth schema. If the
-> demo logins don't work on your project version, sign the two users up via the
-> app instead and the rest of the demo data will attach by email/profile.
+> Note: directly seeding `auth.users` depends on Supabase's auth version. If a
+> demo login doesn't work, sign that email up via the app instead — the seeded
+> league/predictions attach by the fixed UUID/profile. (Re-running `seed.sql`
+> won't change an existing account's password; run `reset.sql` first to reset.)
 
 ---
 

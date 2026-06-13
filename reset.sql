@@ -42,7 +42,7 @@ end $$;
 -- Remove the seeded demo auth accounts (so seed.sql can recreate them cleanly).
 delete from auth.users
 where id in (
-  '11111111-1111-1111-1111-111111111111',  -- test@example.com  (Priyanka)
-  '22222222-2222-2222-2222-222222222222',  -- rohit@example.com
-  '44444444-4444-4444-4444-444444444444'   -- admin@example.com
+  '11111111-1111-1111-1111-111111111111',  -- priyanka@worldcup.com
+  '22222222-2222-2222-2222-222222222222',  -- rohit@worldcup.com
+  '44444444-4444-4444-4444-444444444444'   -- admin@worldcup.com
 );

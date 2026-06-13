@@ -5,7 +5,7 @@
 
 -- Set this to YOUR admin email (must match VITE_ADMIN_EMAIL in .env).
 insert into public.app_config (key, value) values
-  ('admin_email', 'admin@example.com'),
+  ('admin_email', 'admin@worldcup.com'),
   ('pretournament_manual_lock', 'false'),
   ('accumulate_advance', 'false')
 on conflict (key) do nothing;
@@ -192,34 +192,34 @@ on conflict (id) do update set
 
 -- ===========================================================================
 -- DEMO DATA (optional) — two players (Priyanka, Rohit) + a demo league.
--- Login for both: password 'demo1234'. Delete this block for a clean seed.
+-- Logins (password 'Worldcup123'): priyanka@ / rohit@ / admin@worldcup.com. Delete this block for a clean seed.
 -- ===========================================================================
 do $$
 begin
   insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at, raw_app_meta_data, raw_user_meta_data, confirmation_token, recovery_token, email_change_token_new, email_change)
-  values ('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'test@example.com', crypt('demo1234', gen_salt('bf')), now(), now(), now(), '{"provider":"email","providers":["email"]}', '{"display_name":"Priyanka"}', '', '', '', '')
+  values ('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'priyanka@worldcup.com', crypt('Worldcup123', gen_salt('bf')), now(), now(), now(), '{"provider":"email","providers":["email"]}', '{"display_name":"Priyanka"}', '', '', '', '')
   on conflict (id) do nothing;
   insert into auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
-  values (gen_random_uuid(), '11111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', json_build_object('sub','11111111-1111-1111-1111-111111111111','email','test@example.com'), 'email', now(), now(), now())
+  values (gen_random_uuid(), '11111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', json_build_object('sub','11111111-1111-1111-1111-111111111111','email','priyanka@worldcup.com'), 'email', now(), now(), now())
   on conflict do nothing;
   insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at, raw_app_meta_data, raw_user_meta_data, confirmation_token, recovery_token, email_change_token_new, email_change)
-  values ('22222222-2222-2222-2222-222222222222', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'rohit@example.com', crypt('demo1234', gen_salt('bf')), now(), now(), now(), '{"provider":"email","providers":["email"]}', '{"display_name":"Rohit"}', '', '', '', '')
+  values ('22222222-2222-2222-2222-222222222222', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'rohit@worldcup.com', crypt('Worldcup123', gen_salt('bf')), now(), now(), now(), '{"provider":"email","providers":["email"]}', '{"display_name":"Rohit"}', '', '', '', '')
   on conflict (id) do nothing;
   insert into auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
-  values (gen_random_uuid(), '22222222-2222-2222-2222-222222222222', '22222222-2222-2222-2222-222222222222', json_build_object('sub','22222222-2222-2222-2222-222222222222','email','rohit@example.com'), 'email', now(), now(), now())
+  values (gen_random_uuid(), '22222222-2222-2222-2222-222222222222', '22222222-2222-2222-2222-222222222222', json_build_object('sub','22222222-2222-2222-2222-222222222222','email','rohit@worldcup.com'), 'email', now(), now(), now())
   on conflict do nothing;
   insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at, raw_app_meta_data, raw_user_meta_data, confirmation_token, recovery_token, email_change_token_new, email_change)
-  values ('44444444-4444-4444-4444-444444444444', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'admin@example.com', crypt('demo1234', gen_salt('bf')), now(), now(), now(), '{"provider":"email","providers":["email"]}', '{"display_name":"Admin"}', '', '', '', '')
+  values ('44444444-4444-4444-4444-444444444444', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'admin@worldcup.com', crypt('Worldcup123', gen_salt('bf')), now(), now(), now(), '{"provider":"email","providers":["email"]}', '{"display_name":"Admin"}', '', '', '', '')
   on conflict (id) do nothing;
   insert into auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
-  values (gen_random_uuid(), '44444444-4444-4444-4444-444444444444', '44444444-4444-4444-4444-444444444444', json_build_object('sub','44444444-4444-4444-4444-444444444444','email','admin@example.com'), 'email', now(), now(), now())
+  values (gen_random_uuid(), '44444444-4444-4444-4444-444444444444', '44444444-4444-4444-4444-444444444444', json_build_object('sub','44444444-4444-4444-4444-444444444444','email','admin@worldcup.com'), 'email', now(), now(), now())
   on conflict do nothing;
 end $$;
 
 insert into public.profiles (id, email, display_name) values
-  ('11111111-1111-1111-1111-111111111111', 'test@example.com', 'Priyanka'),
-  ('22222222-2222-2222-2222-222222222222', 'rohit@example.com', 'Rohit'),
-  ('44444444-4444-4444-4444-444444444444', 'admin@example.com', 'Admin')
+  ('11111111-1111-1111-1111-111111111111', 'priyanka@worldcup.com', 'Priyanka'),
+  ('22222222-2222-2222-2222-222222222222', 'rohit@worldcup.com', 'Rohit'),
+  ('44444444-4444-4444-4444-444444444444', 'admin@worldcup.com', 'Admin')
 on conflict (id) do update set display_name = excluded.display_name;
 
 insert into public.leagues (id, name, invite_code, owner_id) values

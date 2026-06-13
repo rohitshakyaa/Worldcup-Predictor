@@ -83,7 +83,7 @@ out += "-- Set this to YOUR admin email (must match VITE_ADMIN_EMAIL in .env).\n
 // Insert config defaults but NEVER clobber values the admin has already set
 // (so re-running seed.sql is safe after you change the admin email / lock).
 out += "insert into public.app_config (key, value) values\n"
-out += "  ('admin_email', 'admin@example.com'),\n"
+out += "  ('admin_email', 'admin@worldcup.com'),\n"
 out += "  ('pretournament_manual_lock', 'false'),\n"
 out += "  ('accumulate_advance', 'false')\n"
 out += "on conflict (key) do nothing;\n\n"
@@ -189,16 +189,16 @@ const ro = resolvePreds(ROHIT_PREDS)
 
 out += '-- ===========================================================================\n'
 out += '-- DEMO DATA (optional) — two players (Priyanka, Rohit) + a demo league.\n'
-out += "-- Login for both: password 'demo1234'. Delete this block for a clean seed.\n"
+out += "-- Logins (password 'Worldcup123'): priyanka@ / rohit@ / admin@worldcup.com. Delete this block for a clean seed.\n"
 out += '-- ===========================================================================\n'
 out += 'do $$\nbegin\n'
 for (const [uid, email, name] of [
-  [PRIYANKA, 'test@example.com', 'Priyanka'],
-  [ROHIT, 'rohit@example.com', 'Rohit'],
-  [ADMIN, 'admin@example.com', 'Admin']
+  [PRIYANKA, 'priyanka@worldcup.com', 'Priyanka'],
+  [ROHIT, 'rohit@worldcup.com', 'Rohit'],
+  [ADMIN, 'admin@worldcup.com', 'Admin']
 ]) {
   out += `  insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at, raw_app_meta_data, raw_user_meta_data, confirmation_token, recovery_token, email_change_token_new, email_change)\n`
-  out += `  values ('${uid}', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', '${email}', crypt('demo1234', gen_salt('bf')), now(), now(), now(), '{"provider":"email","providers":["email"]}', '{"display_name":"${name}"}', '', '', '', '')\n`
+  out += `  values ('${uid}', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', '${email}', crypt('Worldcup123', gen_salt('bf')), now(), now(), now(), '{"provider":"email","providers":["email"]}', '{"display_name":"${name}"}', '', '', '', '')\n`
   out += `  on conflict (id) do nothing;\n`
   out += `  insert into auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)\n`
   out += `  values (gen_random_uuid(), '${uid}', '${uid}', json_build_object('sub','${uid}','email','${email}'), 'email', now(), now(), now())\n`
@@ -207,9 +207,9 @@ for (const [uid, email, name] of [
 out += 'end $$;\n\n'
 
 out += "insert into public.profiles (id, email, display_name) values\n"
-out += `  ('${PRIYANKA}', 'test@example.com', 'Priyanka'),\n`
-out += `  ('${ROHIT}', 'rohit@example.com', 'Rohit'),\n`
-out += `  ('${ADMIN}', 'admin@example.com', 'Admin')\n`
+out += `  ('${PRIYANKA}', 'priyanka@worldcup.com', 'Priyanka'),\n`
+out += `  ('${ROHIT}', 'rohit@worldcup.com', 'Rohit'),\n`
+out += `  ('${ADMIN}', 'admin@worldcup.com', 'Admin')\n`
 out += 'on conflict (id) do update set display_name = excluded.display_name;\n\n'
 
 out += "insert into public.leagues (id, name, invite_code, owner_id) values\n"
