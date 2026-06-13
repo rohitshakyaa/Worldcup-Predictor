@@ -185,7 +185,7 @@ async function toggleLock() {
     <div class="card p-3">
       <div class="flex items-start justify-between gap-2">
         <div>
-          <h2 class="text-lg font-bold">Pre-tournament bracket</h2>
+          <h2 class="font-display text-2xl font-bold">Pre-tournament bracket</h2>
           <p class="text-sm text-muted">
             Top 2 per group <strong>+{{ ADVANCE_PTS }}</strong> each · each correct best-third <strong>+{{ THIRD_QUALIFY_PTS }}</strong> ·
             reach R16/QF/SF/Final <strong>+{{ KO_REACH_PTS.r16 }}/{{ KO_REACH_PTS.qf }}/{{ KO_REACH_PTS.sf }}/{{ KO_REACH_PTS.final }}</strong> ·
@@ -193,7 +193,7 @@ async function toggleLock() {
           </p>
         </div>
         <div class="flex flex-col items-end gap-1">
-          <span class="chip" :class="locked ? 'chip-lock' : 'chip-done'">{{ locked ? '🔒 Locked' : 'Open' }}</span>
+          <span class="chip" :class="locked ? 'chip-lock' : 'chip-done'">{{ locked ? 'Locked' : 'Open' }}</span>
           <span v-if="status==='saving'" class="text-[11px] text-muted">Saving…</span>
           <span v-else-if="status==='saved'" class="text-[11px] text-brand">Saved ✓</span>
         </div>
@@ -221,7 +221,7 @@ async function toggleLock() {
     <details class="card p-3" open>
       <summary class="cursor-pointer font-bold">Group finishing order</summary>
       <div class="mt-2 grid gap-3 sm:grid-cols-2">
-        <div v-for="g in ms.groupLetters" :key="g" class="rounded-xl border border-line p-2">
+        <div v-for="g in ms.groupLetters" :key="g" class="rounded-xl border border-white/10 p-2">
           <h3 class="font-semibold">Group {{ g }}</h3>
           <ol class="mt-1 space-y-1">
             <li v-for="(tid, idx) in orders[g]" :key="tid"
@@ -249,7 +249,7 @@ async function toggleLock() {
       <p class="text-xs text-muted">Pick which 8 of the 12 third-placed teams advance. FIFA's Annexe C then assigns their Round-of-32 matchups automatically.</p>
       <div class="mt-2 grid grid-cols-2 gap-1 sm:grid-cols-3">
         <button v-for="c in candidateThirds" :key="c.group"
-          class="flex items-center gap-2 rounded-lg border border-line px-2 py-1.5 text-left text-sm"
+          class="flex items-center gap-2 rounded-lg border border-white/10 px-2 py-1.5 text-left text-sm"
           :class="selectedThirds.has(c.group) ? 'qualify font-semibold' : 'bg-surface'"
           :disabled="locked"
           @click="toggleThird(c.group)">
@@ -269,12 +269,12 @@ async function toggleLock() {
       <div v-for="stage in KO_STAGES" :key="stage" class="mt-3">
         <div class="label mb-1">{{ KO_LABEL[stage] }}</div>
         <div class="grid gap-2 sm:grid-cols-2">
-          <div v-for="m in ms.matchesByStage[stage]" :key="m.id" class="rounded-xl border border-line p-2">
+          <div v-for="m in ms.matchesByStage[stage]" :key="m.id" class="rounded-xl border border-white/10 p-2">
             <div class="text-[10px] text-muted">#{{ m.match_no }} · {{ formatKickoff(m.kickoff_utc) }}</div>
 
             <button
               class="mt-1 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left"
-              :class="advOf(m.id) && advOf(m.id) === resolved[m.id]?.home ? 'qualify font-semibold' : 'hover:bg-surface'"
+              :class="advOf(m.id) && advOf(m.id) === resolved[m.id]?.home ? 'qualify font-semibold' : 'hover:bg-white/5'"
               :disabled="locked || !resolved[m.id]?.home"
               @click="pickWinner(m, resolved[m.id]?.home)"
             >
@@ -284,7 +284,7 @@ async function toggleLock() {
 
             <button
               class="mt-1 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left"
-              :class="advOf(m.id) && advOf(m.id) === resolved[m.id]?.away ? 'qualify font-semibold' : 'hover:bg-surface'"
+              :class="advOf(m.id) && advOf(m.id) === resolved[m.id]?.away ? 'qualify font-semibold' : 'hover:bg-white/5'"
               :disabled="locked || !resolved[m.id]?.away"
               @click="pickWinner(m, resolved[m.id]?.away)"
             >
@@ -300,7 +300,7 @@ async function toggleLock() {
     </div>
 
     <div v-if="toast" class="fixed inset-x-0 bottom-24 z-30 flex justify-center px-4">
-      <div class="card px-4 py-2 text-sm shadow-lg">{{ toast }}</div>
+      <div class="popover px-4 py-2.5 text-sm">{{ toast }}</div>
     </div>
   </div>
 </template>

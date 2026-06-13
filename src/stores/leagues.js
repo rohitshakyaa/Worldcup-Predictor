@@ -90,6 +90,34 @@ export const useLeaguesStore = defineStore('leagues', {
       await this.loadMine()
       this.setCurrent(data)
       return data
+    },
+
+    // ---- Admin management (RLS/RPCs enforce is_admin server-side) ----
+    async adminAddMember(leagueId, email) {
+      const { error } = await supabase.rpc('admin_add_member', { p_league_id: leagueId, p_email: email })
+      if (error) throw error
+      if (leagueId === this.currentLeagueId) await this.loadMembers()
+    },
+    async adminRemoveMember(leagueId, userId) {
+      const { error } = await supabase.rpc('admin_remove_member', { p_league_id: leagueId, p_user_id: userId })
+      if (error) throw error
+      if (leagueId === this.currentLeagueId) await this.loadMembers()
+    },
+    async adminSoftRemoveAccount(userId) {
+      const { error } = await supabase.rpc('admin_soft_remove_account', { p_user_id: userId })
+      if (error) throw error
+      await this.loadMembers()
+    },
+    async adminRenameLeague(leagueId, name) {
+      const { error } = await supabase.rpc('admin_rename_league', { p_league_id: leagueId, p_name: name })
+      if (error) throw error
+      await this.loadMine()
+    },
+    async loadAllProfiles() {
+      const { data, error } = await supabase
+        .from('profiles').select('id, display_name, email').order('display_name')
+      if (error) throw error
+      return data || []
     }
   }
 })

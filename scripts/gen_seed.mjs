@@ -84,7 +84,8 @@ out += "-- Set this to YOUR admin email (must match VITE_ADMIN_EMAIL in .env).\n
 // (so re-running seed.sql is safe after you change the admin email / lock).
 out += "insert into public.app_config (key, value) values\n"
 out += "  ('admin_email', 'admin@example.com'),\n"
-out += "  ('pretournament_manual_lock', 'false')\n"
+out += "  ('pretournament_manual_lock', 'false'),\n"
+out += "  ('accumulate_advance', 'false')\n"
 out += "on conflict (key) do nothing;\n\n"
 
 // Groups

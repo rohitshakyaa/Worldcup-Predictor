@@ -251,13 +251,15 @@ create policy profiles_comember on public.profiles
   );
 create policy profiles_update_self on public.profiles
   for update to authenticated using (id = auth.uid()) with check (id = auth.uid());
+create policy profiles_admin_read on public.profiles
+  for select to authenticated using (public.is_admin());
 
 -- ---- Leagues: members can see their league; anyone authenticated may look up
 -- a league by invite_code in order to join (handled via join_league RPC, but a
 -- read policy is needed for the owner/members to load it). --------------------
 create policy leagues_member_read on public.leagues
   for select to authenticated using (
-    owner_id = auth.uid() or public.is_league_member(id)
+    owner_id = auth.uid() or public.is_league_member(id) or public.is_admin()
   );
 create policy leagues_owner_insert on public.leagues
   for insert to authenticated with check (owner_id = auth.uid());
@@ -268,7 +270,7 @@ create policy leagues_owner_delete on public.leagues
 
 -- ---- League members: visible only to members of the same league -----------
 create policy members_read on public.league_members
-  for select to authenticated using (public.is_league_member(league_id));
+  for select to authenticated using (public.is_league_member(league_id) or public.is_admin());
 -- Self-join: a user may insert their OWN membership row (join_league RPC also
 -- validates the invite code; this policy keeps the write self-scoped).
 create policy members_self_insert on public.league_members
@@ -281,22 +283,22 @@ create policy members_self_delete on public.league_members
 -- create NO insert/update policies, AND revoke table privileges, so the RPC is
 -- the sole write path (harder to bypass than a time-based RLS policy).
 create policy predictions_read on public.predictions
-  for select to authenticated using (public.is_league_member(league_id));
+  for select to authenticated using (public.is_league_member(league_id) or public.is_admin());
 
 create policy gpp_read on public.group_position_picks
-  for select to authenticated using (public.is_league_member(league_id));
+  for select to authenticated using (public.is_league_member(league_id) or public.is_admin());
 
 create policy kp_read on public.knockout_picks
-  for select to authenticated using (public.is_league_member(league_id));
+  for select to authenticated using (public.is_league_member(league_id) or public.is_admin());
 
 create policy cp_read on public.champion_picks
-  for select to authenticated using (public.is_league_member(league_id));
+  for select to authenticated using (public.is_league_member(league_id) or public.is_admin());
 
 create policy bp_read on public.bracket_picks
-  for select to authenticated using (public.is_league_member(league_id));
+  for select to authenticated using (public.is_league_member(league_id) or public.is_admin());
 
 create policy tsp_read on public.third_slot_picks
-  for select to authenticated using (public.is_league_member(league_id));
+  for select to authenticated using (public.is_league_member(league_id) or public.is_admin());
 
 -- Revoke any direct write privilege on the prediction/pick tables.
 revoke insert, update, delete on public.predictions          from anon, authenticated;
@@ -345,6 +347,24 @@ begin
   end if;
   insert into public.app_config (key, value)
   values ('pretournament_manual_lock', case when p_locked then 'true' else 'false' end)
+  on conflict (key) do update set value = excluded.value;
+end;
+$$;
+
+-- Whether advance/third/reach points count toward each player's TOTAL.
+-- Off until the admin enables it (e.g. after the tournament). The points are
+-- always computed and shown; this only controls whether they're summed in.
+create or replace function public.admin_set_accumulate_advance(p_on boolean)
+returns void
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  if not public.is_admin() then
+    raise exception 'Admin only';
+  end if;
+  insert into public.app_config (key, value)
+  values ('accumulate_advance', case when p_on then 'true' else 'false' end)
   on conflict (key) do update set value = excluded.value;
 end;
 $$;
@@ -527,6 +547,52 @@ begin
 end;
 $$;
 
+-- ---- Admin member/account management (gated on is_admin()) ----------------
+create or replace function public.admin_add_member(p_league_id uuid, p_email text)
+returns uuid language plpgsql security definer set search_path = public as $$
+declare v_uid uuid;
+begin
+  if not public.is_admin() then raise exception 'Admin only'; end if;
+  select id into v_uid from public.profiles where lower(email) = lower(trim(p_email));
+  if v_uid is null then raise exception 'No account with email %, ask them to sign up first', p_email; end if;
+  insert into public.league_members (league_id, user_id) values (p_league_id, v_uid) on conflict do nothing;
+  return v_uid;
+end; $$;
+
+create or replace function public.admin_remove_member(p_league_id uuid, p_user_id uuid)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception 'Admin only'; end if;
+  delete from public.predictions          where league_id = p_league_id and user_id = p_user_id;
+  delete from public.group_position_picks where league_id = p_league_id and user_id = p_user_id;
+  delete from public.knockout_picks       where league_id = p_league_id and user_id = p_user_id;
+  delete from public.champion_picks        where league_id = p_league_id and user_id = p_user_id;
+  delete from public.bracket_picks         where league_id = p_league_id and user_id = p_user_id;
+  delete from public.third_slot_picks      where league_id = p_league_id and user_id = p_user_id;
+  delete from public.league_members        where league_id = p_league_id and user_id = p_user_id;
+end; $$;
+
+create or replace function public.admin_soft_remove_account(p_user_id uuid)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception 'Admin only'; end if;
+  delete from public.predictions          where user_id = p_user_id;
+  delete from public.group_position_picks where user_id = p_user_id;
+  delete from public.knockout_picks       where user_id = p_user_id;
+  delete from public.champion_picks        where user_id = p_user_id;
+  delete from public.bracket_picks         where user_id = p_user_id;
+  delete from public.third_slot_picks      where user_id = p_user_id;
+  delete from public.league_members        where user_id = p_user_id;
+end; $$;
+
+create or replace function public.admin_rename_league(p_league_id uuid, p_name text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception 'Admin only'; end if;
+  if length(trim(coalesce(p_name, ''))) = 0 then raise exception 'Name required'; end if;
+  update public.leagues set name = trim(p_name) where id = p_league_id;
+end; $$;
+
 -- Join a league by invite code (returns the league id).
 create or replace function public.join_league(p_invite_code text)
 returns uuid
@@ -627,7 +693,12 @@ grant execute on function public.save_champion_pick(uuid,integer)               
 grant execute on function public.save_bracket_pick(uuid,integer,integer)         to authenticated;
 grant execute on function public.save_third_slot(uuid,integer,integer)           to authenticated;
 grant execute on function public.admin_set_pretournament_lock(boolean)           to authenticated;
+grant execute on function public.admin_set_accumulate_advance(boolean)           to authenticated;
 grant execute on function public.join_league(text)                              to authenticated;
+grant execute on function public.admin_add_member(uuid,text)                    to authenticated;
+grant execute on function public.admin_remove_member(uuid,uuid)                 to authenticated;
+grant execute on function public.admin_soft_remove_account(uuid)                to authenticated;
+grant execute on function public.admin_rename_league(uuid,text)                 to authenticated;
 grant execute on function public.admin_save_result(integer,integer,integer,integer,text) to authenticated;
 grant execute on function public.admin_set_match_lock(integer,boolean)          to authenticated;
 grant execute on function public.admin_set_stage_lock(text,boolean)             to authenticated;

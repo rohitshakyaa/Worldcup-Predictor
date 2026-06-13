@@ -5,21 +5,25 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Drive the palette from CSS custom properties so light/dark themes
-        // resolve automatically (see src/style.css).
+        // Palette driven by CSS custom properties (see src/style.css).
         surface: 'rgb(var(--surface) / <alpha-value>)',
+        'surface-2': 'rgb(var(--surface-2) / <alpha-value>)',
         card: 'rgb(var(--card) / <alpha-value>)',
         ink: 'rgb(var(--ink) / <alpha-value>)',
         muted: 'rgb(var(--muted) / <alpha-value>)',
         line: 'rgb(var(--line) / <alpha-value>)',
         brand: 'rgb(var(--brand) / <alpha-value>)',
         'brand-ink': 'rgb(var(--brand-ink) / <alpha-value>)',
-        accent: 'rgb(var(--accent) / <alpha-value>)'
+        accent: 'rgb(var(--accent) / <alpha-value>)',
+        gold: 'rgb(var(--gold) / <alpha-value>)',
+        silver: 'rgb(var(--silver) / <alpha-value>)',
+        bronze: 'rgb(var(--bronze) / <alpha-value>)'
       },
       fontFamily: {
-        sans: ['system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif']
+        sans: ['Barlow', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+        display: ['"Barlow Condensed"', 'Barlow', 'system-ui', 'sans-serif']
       },
-      maxWidth: { app: '720px' }
+      maxWidth: { app: '760px' }
     }
   },
   plugins: []

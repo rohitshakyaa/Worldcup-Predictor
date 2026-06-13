@@ -10,7 +10,7 @@ const groups = computed(() => ms.groupLetters)
 <template>
   <div class="space-y-4">
     <div class="flex items-center justify-between">
-      <h2 class="text-lg font-bold">Group standings</h2>
+      <h2 class="font-display text-2xl font-bold">Group standings</h2>
       <span class="text-xs text-muted">Top 2 + best 8 thirds advance</span>
     </div>
 

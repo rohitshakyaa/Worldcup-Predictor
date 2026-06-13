@@ -33,7 +33,7 @@ function pick(id) { lg.setCurrent(id); open.value = false }
       <span class="text-muted">▾</span>
     </button>
 
-    <div v-if="open" class="absolute right-0 z-30 mt-2 w-72 card p-3 space-y-2">
+    <div v-if="open" class="absolute right-0 z-50 mt-2 w-72 popover p-3 space-y-2">
       <div class="flex gap-1 text-xs">
         <button class="btn-ghost btn-sm flex-1" :class="{'!bg-brand !text-brand-ink': mode==='switch'}" @click="mode='switch'">Switch</button>
         <button class="btn-ghost btn-sm flex-1" :class="{'!bg-brand !text-brand-ink': mode==='create'}" @click="mode='create'">Create</button>
@@ -44,7 +44,7 @@ function pick(id) { lg.setCurrent(id); open.value = false }
         <p v-if="!leagues.length" class="text-sm text-muted">You're not in a league yet. Create or join one.</p>
         <button
           v-for="l in leagues" :key="l.id"
-          class="w-full text-left rounded-lg px-2 py-1.5 hover:bg-surface"
+          class="w-full text-left rounded-lg px-2 py-1.5 hover:bg-white/5"
           :class="{'bg-brand/10 font-semibold': l.id === currentLeague?.id}"
           @click="pick(l.id)"
         >

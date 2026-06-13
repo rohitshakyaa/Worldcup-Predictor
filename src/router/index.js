@@ -8,6 +8,7 @@ import BracketView from '../views/BracketView.vue'
 import MyPicksView from '../views/MyPicksView.vue'
 import LeaderboardView from '../views/LeaderboardView.vue'
 import RulesView from '../views/RulesView.vue'
+import AdminView from '../views/AdminView.vue'
 
 const routes = [
   { path: '/', redirect: '/groups' },
@@ -17,7 +18,8 @@ const routes = [
   { path: '/bracket', component: BracketView },
   { path: '/picks', component: MyPicksView },
   { path: '/leaderboard', component: LeaderboardView },
-  { path: '/rules', component: RulesView }
+  { path: '/rules', component: RulesView },
+  { path: '/admin', component: AdminView, meta: { admin: true } }
 ]
 
 // Hash history: portable to GitHub Pages subpaths, Netlify, and Vercel with no
@@ -29,6 +31,7 @@ router.beforeEach((to) => {
   if (!auth.ready) return true
   if (!to.meta.public && !auth.isLoggedIn) return '/login'
   if (to.path === '/login' && auth.isLoggedIn) return '/groups'
+  if (to.meta.admin && !auth.isAdmin) return '/groups'
   return true
 })
 

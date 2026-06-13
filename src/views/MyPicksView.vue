@@ -33,7 +33,7 @@ const team = (id) => ms.teamById[id]
 <template>
   <div class="space-y-4">
     <div class="card p-3">
-      <h2 class="text-lg font-bold">My picks</h2>
+      <h2 class="font-display text-2xl font-bold">My picks</h2>
       <div class="mt-2 grid grid-cols-4 gap-2 text-center">
         <div><div class="text-xl font-bold">{{ myTotal.group }}</div><div class="label">Group</div></div>
         <div><div class="text-xl font-bold">{{ myTotal.knockout }}</div><div class="label">Knockout</div></div>

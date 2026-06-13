@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
+import Icon from '../components/Icon.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -34,8 +35,10 @@ async function submit() {
   <div class="flex min-h-[70vh] items-center">
     <div class="card mx-auto w-full max-w-sm p-6 space-y-4">
       <div class="text-center">
-        <div class="text-4xl">⚽</div>
-        <h1 class="text-xl font-bold">World Cup 2026 Predictor</h1>
+        <div class="mx-auto mb-1 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand/15 text-brand">
+          <Icon name="trophy" :size="30" />
+        </div>
+        <h1 class="font-display text-3xl font-bold">World Cup <span class="text-brand">2026</span></h1>
         <p class="text-sm text-muted">{{ mode === 'login' ? 'Sign in to play' : 'Create your account' }}</p>
       </div>
 

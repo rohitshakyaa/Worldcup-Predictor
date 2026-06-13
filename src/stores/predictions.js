@@ -160,8 +160,11 @@ export const usePredictionsStore = defineStore('predictions', {
         ensure(uid).advances += scoreThirds(thirdsByUser[uid], qualThirds)
       }
 
+      // Advance/third/reach points are shown but only counted in the total once
+      // the admin enables accumulation (e.g. after the tournament).
+      const countAdv = ms.accumulateAdvance
       const rows = Object.values(users)
-      for (const r of rows) r.total = r.group + r.knockout + r.advances + r.champion
+      for (const r of rows) r.total = r.group + r.knockout + r.champion + (countAdv ? r.advances : 0)
       rows.sort((a, b) => b.total - a.total || a.name.localeCompare(b.name))
       return rows
     },

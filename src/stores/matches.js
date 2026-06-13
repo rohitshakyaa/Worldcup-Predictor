@@ -45,7 +45,8 @@ export const useMatchesStore = defineStore('matches', {
       return actualAdvancers(this.standings)
     },
     isLocked: () => (m) => m.manual_lock || Date.now() >= new Date(m.kickoff_utc).getTime(),
-    pretournamentLocked: (s) => s.config.pretournament_manual_lock === 'true'
+    pretournamentLocked: (s) => s.config.pretournament_manual_lock === 'true',
+    accumulateAdvance: (s) => s.config.accumulate_advance === 'true'
   },
   actions: {
     async load() {
@@ -63,6 +64,11 @@ export const useMatchesStore = defineStore('matches', {
       const { error } = await supabase.rpc('admin_set_pretournament_lock', { p_locked: locked })
       if (error) throw error
       this.config = { ...this.config, pretournament_manual_lock: locked ? 'true' : 'false' }
+    },
+    async setAccumulateAdvance(on) {
+      const { error } = await supabase.rpc('admin_set_accumulate_advance', { p_on: on })
+      if (error) throw error
+      this.config = { ...this.config, accumulate_advance: on ? 'true' : 'false' }
     },
     // Admin: fetch the official results JSON and return a list of suggested
     // updates (match_no + new score) for finished matches that differ from

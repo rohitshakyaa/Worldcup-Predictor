@@ -24,13 +24,23 @@ At [supabase.com](https://supabase.com) → New project. Note the **Project URL*
 and the **anon/public** API key (Settings → API). **Never** use the service-role key here.
 
 ### 2. Run the SQL (in order)
-In the Supabase SQL editor:
-1. Run **`schema.sql`** (tables, RLS, lock RPCs, helper functions).
-2. Run **`seed.sql`** (12 groups, 48 teams, all 104 fixtures, the 4 already-played
-   results, and an optional demo league).
+In the Supabase SQL editor, for a **fresh setup** run just these two:
+1. **`schema.sql`** — all tables, RLS, lock RPCs, admin RPCs, helper functions (everything).
+2. **`seed.sql`** — 12 groups, 48 teams, all 104 fixtures, the already-played results,
+   config defaults, and an optional demo league + accounts.
 
-> `seed.sql` is generated from the official `wc2026_matches.json` by
-> `scripts/gen_seed.mjs` (`npm run gen:seed`). Re-run it if the source file changes.
+That's it for a brand-new project — **no migration files needed.**
+
+> `seed.sql` is generated from the official `wc2026_matches.json` + `wc2026_fifa_rankings.json`
+> by `scripts/gen_seed.mjs` (`npm run gen:seed`). Re-run it if the source files change.
+
+**Starting over on an existing project?** Run **`reset.sql`** first (it drops all app
+tables/functions and the demo accounts), then `schema.sql` then `seed.sql`.
+
+**Upgrading an older install?** The `migration_*.sql` files patch a DB that was created
+before a feature existed (`migration_admin.sql`, `migration_bracket.sql`,
+`migration_save_bracket_pick.sql`, `migration_accumulate_advance.sql`). A fresh
+`schema.sql` already includes all of them, so you only need these when upgrading.
 
 After seeding, set the admin email so the database recognises your admin account:
 ```sql

@@ -6,7 +6,8 @@
 -- Set this to YOUR admin email (must match VITE_ADMIN_EMAIL in .env).
 insert into public.app_config (key, value) values
   ('admin_email', 'admin@example.com'),
-  ('pretournament_manual_lock', 'false')
+  ('pretournament_manual_lock', 'false'),
+  ('accumulate_advance', 'false')
 on conflict (key) do nothing;
 
 insert into public.groups (letter) values

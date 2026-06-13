@@ -32,7 +32,7 @@ const stageRows = [
           </tr>
         </thead>
         <tbody>
-          <tr v-for="[label, pts] in stageRows" :key="label" class="border-t border-line">
+          <tr v-for="[label, pts] in stageRows" :key="label" class="border-t border-white/10">
             <td class="py-1.5">{{ label }}</td>
             <td class="py-1.5 text-right font-bold tabular-nums">+{{ pts }}</td>
           </tr>

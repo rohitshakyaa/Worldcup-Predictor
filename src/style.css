@@ -1,76 +1,117 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Theme tokens — light by default, dark via prefers-color-scheme. Values are
-   "R G B" triples so Tailwind's <alpha-value> works (see tailwind.config.js). */
+/* ===== Dark "stadium" theme — pitch-night glass + electric accent ===== */
 :root {
-  --surface: 244 245 247;
-  --card: 255 255 255;
-  --ink: 17 24 39;
-  --muted: 107 114 128;
-  --line: 226 232 240;
-  --brand: 11 125 62;     /* pitch green */
-  --brand-ink: 255 255 255;
-  --accent: 217 119 6;    /* amber */
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --surface: 15 23 42;
-    --card: 30 41 59;
-    --ink: 226 232 240;
-    --muted: 148 163 184;
-    --line: 51 65 85;
-    --brand: 22 163 74;
-    --brand-ink: 255 255 255;
-    --accent: 251 191 36;
-  }
+  --surface: 7 11 20;       /* page base */
+  --surface-2: 14 20 34;
+  --card: 18 25 40;         /* solid fallback */
+  --ink: 232 238 248;
+  --muted: 142 155 178;
+  --line: 255 255 255;      /* used at low alpha */
+  --brand: 43 227 139;      /* neon green */
+  --brand-ink: 4 17 10;     /* dark text on neon */
+  --accent: 34 211 238;     /* cyan */
+  --gold: 245 196 81;
+  --silver: 200 210 224;
+  --bronze: 224 136 60;
 }
 
 html, body, #app { height: 100%; }
 body {
-  @apply bg-surface text-ink antialiased;
   margin: 0;
+  font-family: 'Barlow', system-ui, -apple-system, sans-serif;
+  color: rgb(var(--ink));
+  background:
+    radial-gradient(1100px 700px at 12% -8%, rgba(43, 227, 139, 0.10), transparent 60%),
+    radial-gradient(1000px 700px at 100% 0%, rgba(34, 211, 238, 0.08), transparent 55%),
+    radial-gradient(900px 900px at 50% 120%, rgba(124, 58, 237, 0.07), transparent 60%),
+    rgb(var(--surface));
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+}
+
+@layer base {
+  h1, h2, h3, .font-display {
+    font-family: 'Barlow Condensed', 'Barlow', system-ui, sans-serif;
+    letter-spacing: 0.01em;
+  }
 }
 
 @layer components {
   .app-shell { @apply mx-auto max-w-app min-h-full flex flex-col; }
   .content { @apply flex-1 px-4 pb-28 pt-4; }
 
-  .card { @apply bg-card border border-line rounded-2xl shadow-sm; }
-  .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5
-           font-semibold transition active:scale-[0.98] disabled:opacity-50;
+  /* Glass surfaces */
+  .card {
+    @apply rounded-2xl border border-white/10 bg-white/[0.045] backdrop-blur-xl;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
   }
-  .btn-brand { @apply btn bg-brand text-brand-ink; }
-  .btn-ghost { @apply btn border border-line bg-card text-ink; }
-  .btn-sm { @apply px-3 py-1.5 text-sm rounded-lg; }
+  .card-tight { @apply rounded-xl border border-white/10 bg-white/[0.04] backdrop-blur-md; }
+
+  /* Opaque overlay surfaces (bars, menus, toasts) — readable over content. */
+  .bar { @apply border-white/10 bg-surface-2; }
+  .popover { @apply rounded-2xl border border-white/10 bg-surface-2 shadow-[0_12px_40px_rgba(0,0,0,0.55)]; }
+
+  /* Buttons (44px min touch target via py) */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold
+           cursor-pointer transition-colors duration-200 active:scale-[0.98]
+           disabled:opacity-40 disabled:cursor-not-allowed
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60;
+  }
+  .btn-brand {
+    @apply btn bg-brand text-brand-ink hover:bg-brand/90;
+    box-shadow: 0 6px 20px rgba(43, 227, 139, 0.28);
+  }
+  .btn-ghost { @apply btn border border-white/10 bg-white/[0.05] text-ink hover:bg-white/[0.10]; }
+  .btn-danger { @apply btn border border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20; }
+  .btn-sm { @apply px-3 py-1.5 text-xs rounded-lg; }
 
   .input {
-    @apply w-full rounded-xl border border-line bg-card px-3 py-2.5 text-ink
-           outline-none focus:ring-2 focus:ring-brand/50;
+    @apply w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2.5 text-base text-ink
+           placeholder:text-muted outline-none transition-colors duration-200
+           focus:border-brand/50 focus:ring-2 focus:ring-brand/30;
   }
   .score-input {
-    @apply w-12 rounded-lg border border-line bg-card text-center text-lg font-bold
-           py-1.5 outline-none focus:ring-2 focus:ring-brand/50 disabled:opacity-60;
+    @apply w-12 rounded-lg border border-white/10 bg-white/[0.06] text-center font-display text-xl font-bold
+           py-1 text-ink tabular-nums outline-none focus:border-brand/50 focus:ring-2 focus:ring-brand/30
+           disabled:opacity-50;
   }
 
-  .chip { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold; }
-  .chip-lock { @apply chip bg-red-500/10 text-red-600 dark:text-red-400; }
-  .chip-live { @apply chip bg-amber-500/15 text-accent; }
-  .chip-done { @apply chip bg-brand/10 text-brand; }
+  .chip { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold; }
+  .chip-lock { @apply chip bg-red-500/15 text-red-300; }
+  .chip-live { @apply chip bg-accent/15 text-accent; }
+  .chip-done { @apply chip bg-brand/15 text-brand; }
+  .chip-muted { @apply chip bg-white/10 text-muted; }
 
+  .label { @apply text-[11px] font-semibold uppercase tracking-wider text-muted; }
+
+  /* Highlights */
+  .qualify { @apply bg-brand/10; box-shadow: inset 3px 0 0 rgb(var(--brand)); }
+  .qualify-third { @apply bg-accent/10; box-shadow: inset 3px 0 0 rgb(var(--accent)); }
+
+  /* Bottom nav */
   .tab-link {
-    @apply flex flex-col items-center justify-center gap-0.5 flex-1 py-2 text-[11px]
-           font-medium text-muted;
+    @apply flex flex-1 flex-col items-center justify-center gap-1 py-2 text-[10px] font-semibold uppercase tracking-wide
+           text-muted cursor-pointer transition-colors duration-200;
   }
   .tab-link.active { @apply text-brand; }
 
-  .label { @apply text-xs font-semibold uppercase tracking-wide text-muted; }
-  .qualify { @apply bg-brand/10; }     /* top-2 highlight */
-  .qualify-third { @apply bg-accent/10; }
+  .stat-num { @apply font-display tabular-nums; }
 }
 
-/* Safe-area padding for installed PWA on notched devices. */
-.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+.safe-bottom { padding-bottom: max(env(safe-area-inset-bottom), 0.5rem); }
 .safe-top { padding-top: env(safe-area-inset-top); }
+
+/* Respect reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
+
+/* Subtle entrance used on cards/rows */
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.animate-rise { animation: rise 0.28s ease both; }

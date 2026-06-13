@@ -21,7 +21,7 @@ const qualifiedThirds = computed(() => ms.standings.qualifiedThirdIds)
         <tr
           v-for="r in rows"
           :key="r.teamId"
-          class="border-t border-line"
+          class="border-t border-white/10"
           :class="{
             'qualify': r.position <= 2,
             'qualify-third': r.position === 3 && qualifiedThirds.has(r.teamId)
