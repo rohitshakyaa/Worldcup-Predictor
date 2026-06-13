@@ -1,0 +1,20 @@
+node_modules/
+dist/
+dist-ssr/
+
+# Local env (contains your filled-in Supabase values). Excluded by default so
+# real project credentials don't land in git history. The committed
+# .env.example is the template. (The anon key is public-safe, so you MAY force-
+# add .env if you prefer — see README.)
+.env
+.env.local
+.env.*.local
+
+# Local agent/editor config
+.claude/
+
+# Editor / OS
+.DS_Store
+*.log
+.vscode/
+.idea/

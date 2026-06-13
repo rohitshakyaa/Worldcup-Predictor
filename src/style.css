@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Theme tokens — light by default, dark via prefers-color-scheme. Values are
+   "R G B" triples so Tailwind's <alpha-value> works (see tailwind.config.js). */
+:root {
+  --surface: 244 245 247;
+  --card: 255 255 255;
+  --ink: 17 24 39;
+  --muted: 107 114 128;
+  --line: 226 232 240;
+  --brand: 11 125 62;     /* pitch green */
+  --brand-ink: 255 255 255;
+  --accent: 217 119 6;    /* amber */
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: 15 23 42;
+    --card: 30 41 59;
+    --ink: 226 232 240;
+    --muted: 148 163 184;
+    --line: 51 65 85;
+    --brand: 22 163 74;
+    --brand-ink: 255 255 255;
+    --accent: 251 191 36;
+  }
+}
+
+html, body, #app { height: 100%; }
+body {
+  @apply bg-surface text-ink antialiased;
+  margin: 0;
+}
+
+@layer components {
+  .app-shell { @apply mx-auto max-w-app min-h-full flex flex-col; }
+  .content { @apply flex-1 px-4 pb-28 pt-4; }
+
+  .card { @apply bg-card border border-line rounded-2xl shadow-sm; }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5
+           font-semibold transition active:scale-[0.98] disabled:opacity-50;
+  }
+  .btn-brand { @apply btn bg-brand text-brand-ink; }
+  .btn-ghost { @apply btn border border-line bg-card text-ink; }
+  .btn-sm { @apply px-3 py-1.5 text-sm rounded-lg; }
+
+  .input {
+    @apply w-full rounded-xl border border-line bg-card px-3 py-2.5 text-ink
+           outline-none focus:ring-2 focus:ring-brand/50;
+  }
+  .score-input {
+    @apply w-12 rounded-lg border border-line bg-card text-center text-lg font-bold
+           py-1.5 outline-none focus:ring-2 focus:ring-brand/50 disabled:opacity-60;
+  }
+
+  .chip { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold; }
+  .chip-lock { @apply chip bg-red-500/10 text-red-600 dark:text-red-400; }
+  .chip-live { @apply chip bg-amber-500/15 text-accent; }
+  .chip-done { @apply chip bg-brand/10 text-brand; }
+
+  .tab-link {
+    @apply flex flex-col items-center justify-center gap-0.5 flex-1 py-2 text-[11px]
+           font-medium text-muted;
+  }
+  .tab-link.active { @apply text-brand; }
+
+  .label { @apply text-xs font-semibold uppercase tracking-wide text-muted; }
+  .qualify { @apply bg-brand/10; }     /* top-2 highlight */
+  .qualify-third { @apply bg-accent/10; }
+}
+
+/* Safe-area padding for installed PWA on notched devices. */
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+.safe-top { padding-top: env(safe-area-inset-top); }

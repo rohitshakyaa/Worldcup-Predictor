@@ -1,0 +1,297 @@
+{
+  "title": "FIFA/Coca-Cola Men's World Ranking — qualified WC2026 teams",
+  "official_update": "2026-06-11",
+  "next_update": "2026-07-20",
+  "source": "FIFA via ESPN/whereig (order); points omitted where not individually published",
+  "ranking_note": "wc_rank = relative strength order among the 48 qualified teams (lower = stronger), useful as the final group/third-place tiebreaker (FIFA uses FIFA ranking as last tiebreaker). fifa_global_rank = position in the full FIFA table including non-qualified nations.",
+  "teams": [
+    {
+      "wc_rank": 1,
+      "fifa_global_rank": 1,
+      "team": "Argentina",
+      "group": "J"
+    },
+    {
+      "wc_rank": 2,
+      "fifa_global_rank": 2,
+      "team": "Spain",
+      "group": "H"
+    },
+    {
+      "wc_rank": 3,
+      "fifa_global_rank": 3,
+      "team": "France",
+      "group": "I"
+    },
+    {
+      "wc_rank": 4,
+      "fifa_global_rank": 4,
+      "team": "England",
+      "group": "L"
+    },
+    {
+      "wc_rank": 5,
+      "fifa_global_rank": 5,
+      "team": "Portugal",
+      "group": "K"
+    },
+    {
+      "wc_rank": 6,
+      "fifa_global_rank": 6,
+      "team": "Brazil",
+      "group": "C"
+    },
+    {
+      "wc_rank": 7,
+      "fifa_global_rank": 7,
+      "team": "Netherlands",
+      "group": "F"
+    },
+    {
+      "wc_rank": 8,
+      "fifa_global_rank": 8,
+      "team": "Morocco",
+      "group": "C"
+    },
+    {
+      "wc_rank": 9,
+      "fifa_global_rank": 9,
+      "team": "Belgium",
+      "group": "G"
+    },
+    {
+      "wc_rank": 10,
+      "fifa_global_rank": 10,
+      "team": "Germany",
+      "group": "E"
+    },
+    {
+      "wc_rank": 11,
+      "fifa_global_rank": 11,
+      "team": "Croatia",
+      "group": "L"
+    },
+    {
+      "wc_rank": 12,
+      "fifa_global_rank": 13,
+      "team": "Colombia",
+      "group": "K"
+    },
+    {
+      "wc_rank": 13,
+      "fifa_global_rank": 14,
+      "team": "Senegal",
+      "group": "I"
+    },
+    {
+      "wc_rank": 14,
+      "fifa_global_rank": 14,
+      "team": "Mexico",
+      "group": "A"
+    },
+    {
+      "wc_rank": 15,
+      "fifa_global_rank": 16,
+      "team": "USA",
+      "group": "D"
+    },
+    {
+      "wc_rank": 16,
+      "fifa_global_rank": 17,
+      "team": "Uruguay",
+      "group": "H"
+    },
+    {
+      "wc_rank": 17,
+      "fifa_global_rank": 18,
+      "team": "Japan",
+      "group": "F"
+    },
+    {
+      "wc_rank": 18,
+      "fifa_global_rank": 19,
+      "team": "Switzerland",
+      "group": "B"
+    },
+    {
+      "wc_rank": 19,
+      "fifa_global_rank": 21,
+      "team": "Iran",
+      "group": "G"
+    },
+    {
+      "wc_rank": 20,
+      "fifa_global_rank": 22,
+      "team": "Turkey",
+      "group": "D"
+    },
+    {
+      "wc_rank": 21,
+      "fifa_global_rank": 23,
+      "team": "Ecuador",
+      "group": "E"
+    },
+    {
+      "wc_rank": 22,
+      "fifa_global_rank": 24,
+      "team": "Austria",
+      "group": "J"
+    },
+    {
+      "wc_rank": 23,
+      "fifa_global_rank": 25,
+      "team": "Korea Republic",
+      "group": "A"
+    },
+    {
+      "wc_rank": 24,
+      "fifa_global_rank": 27,
+      "team": "Australia",
+      "group": "D"
+    },
+    {
+      "wc_rank": 25,
+      "fifa_global_rank": 28,
+      "team": "Algeria",
+      "group": "J"
+    },
+    {
+      "wc_rank": 26,
+      "fifa_global_rank": 29,
+      "team": "Egypt",
+      "group": "G"
+    },
+    {
+      "wc_rank": 27,
+      "fifa_global_rank": 30,
+      "team": "Canada",
+      "group": "B"
+    },
+    {
+      "wc_rank": 28,
+      "fifa_global_rank": 31,
+      "team": "Norway",
+      "group": "I"
+    },
+    {
+      "wc_rank": 29,
+      "fifa_global_rank": 33,
+      "team": "Côte d'Ivoire",
+      "group": "E"
+    },
+    {
+      "wc_rank": 30,
+      "fifa_global_rank": 35,
+      "team": "Scotland",
+      "group": "C"
+    },
+    {
+      "wc_rank": 31,
+      "fifa_global_rank": 36,
+      "team": "Paraguay",
+      "group": "D"
+    },
+    {
+      "wc_rank": 32,
+      "fifa_global_rank": 37,
+      "team": "Tunisia",
+      "group": "F"
+    },
+    {
+      "wc_rank": 33,
+      "fifa_global_rank": 38,
+      "team": "Cabo Verde",
+      "group": "H"
+    },
+    {
+      "wc_rank": 34,
+      "fifa_global_rank": 40,
+      "team": "Qatar",
+      "group": "B"
+    },
+    {
+      "wc_rank": 35,
+      "fifa_global_rank": 41,
+      "team": "Saudi Arabia",
+      "group": "H"
+    },
+    {
+      "wc_rank": 36,
+      "fifa_global_rank": 44,
+      "team": "DR Congo",
+      "group": "K"
+    },
+    {
+      "wc_rank": 37,
+      "fifa_global_rank": 47,
+      "team": "Uzbekistan",
+      "group": "K"
+    },
+    {
+      "wc_rank": 38,
+      "fifa_global_rank": 50,
+      "team": "Sweden",
+      "group": "F"
+    },
+    {
+      "wc_rank": 39,
+      "fifa_global_rank": 53,
+      "team": "Czechia",
+      "group": "A"
+    },
+    {
+      "wc_rank": 40,
+      "fifa_global_rank": 55,
+      "team": "Bosnia & Herzegovina",
+      "group": "B"
+    },
+    {
+      "wc_rank": 41,
+      "fifa_global_rank": 58,
+      "team": "Panama",
+      "group": "L"
+    },
+    {
+      "wc_rank": 42,
+      "fifa_global_rank": 60,
+      "team": "Ghana",
+      "group": "L"
+    },
+    {
+      "wc_rank": 43,
+      "fifa_global_rank": 61,
+      "team": "South Africa",
+      "group": "A"
+    },
+    {
+      "wc_rank": 44,
+      "fifa_global_rank": 62,
+      "team": "Jordan",
+      "group": "J"
+    },
+    {
+      "wc_rank": 45,
+      "fifa_global_rank": 76,
+      "team": "Iraq",
+      "group": "I"
+    },
+    {
+      "wc_rank": 46,
+      "fifa_global_rank": 82,
+      "team": "New Zealand",
+      "group": "G"
+    },
+    {
+      "wc_rank": 47,
+      "fifa_global_rank": 86,
+      "team": "Curaçao",
+      "group": "E"
+    },
+    {
+      "wc_rank": 48,
+      "fifa_global_rank": 88,
+      "team": "Haiti",
+      "group": "C"
+    }
+  ]
+}

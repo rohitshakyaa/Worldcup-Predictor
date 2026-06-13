@@ -1,0 +1,11 @@
+# Netlify config. Set env vars (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY,
+# VITE_ADMIN_EMAIL, optional VITE_RESULTS_URL) in Site settings → Environment.
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# Hash routing needs no SPA fallback, but this keeps deep links safe.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
