@@ -6,6 +6,7 @@ import GroupsView from '../views/GroupsView.vue'
 import MatchesView from '../views/MatchesView.vue'
 import BracketView from '../views/BracketView.vue'
 import MyPicksView from '../views/MyPicksView.vue'
+import PlayerView from '../views/PlayerView.vue'
 import LeaderboardView from '../views/LeaderboardView.vue'
 import RulesView from '../views/RulesView.vue'
 import AdminView from '../views/AdminView.vue'
@@ -17,6 +18,7 @@ const routes = [
   { path: '/matches', component: MatchesView },
   { path: '/bracket', component: BracketView },
   { path: '/picks', component: MyPicksView },
+  { path: '/player/:userId', component: PlayerView },
   { path: '/leaderboard', component: LeaderboardView },
   { path: '/rules', component: RulesView },
   { path: '/admin', component: AdminView, meta: { admin: true } }

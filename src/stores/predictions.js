@@ -23,41 +23,53 @@ export const usePredictionsStore = defineStore('predictions', {
     error: ''
   }),
   getters: {
-    // ---- Current user's own data, keyed for quick editing ----
+    // ---- Per-user accessors (work for any member of the loaded league) ----
     myUserId: () => useAuthStore().user?.id,
-    myPredByMatch(s) {
-      const uid = this.myUserId
-      const map = {}
-      for (const p of s.predictions) if (p.user_id === uid) map[p.match_id] = p
-      return map
-    },
-    myGroupOrder(s) {
-      const uid = this.myUserId
-      const out = {} // group -> [teamId pos1..4]
-      for (const p of s.groupPicks) {
-        if (p.user_id !== uid) continue
-        ;(out[p.group_letter] ||= [])[p.predicted_position - 1] = p.team_id
+    // { match_id: prediction } for a given user.
+    predByMatchFor(s) {
+      return (uid) => {
+        const map = {}
+        for (const p of s.predictions) if (p.user_id === uid) map[p.match_id] = p
+        return map
       }
-      return out
     },
-    myChampion(s) {
-      const uid = this.myUserId
-      return s.championPicks.find((c) => c.user_id === uid)?.team_id || null
+    // group -> [teamId pos1..4] for a given user.
+    groupOrderFor(s) {
+      return (uid) => {
+        const out = {}
+        for (const p of s.groupPicks) {
+          if (p.user_id !== uid) continue
+          ;(out[p.group_letter] ||= [])[p.predicted_position - 1] = p.team_id
+        }
+        return out
+      }
     },
-    // { match_id: advancing_team_id } for the current user.
-    myBracketByMatch(s) {
-      const uid = this.myUserId
-      const map = {}
-      for (const b of s.bracketPicks) if (b.user_id === uid) map[b.match_id] = b.advancing_team_id
-      return map
+    championFor(s) {
+      return (uid) => s.championPicks.find((c) => c.user_id === uid)?.team_id || null
     },
-    // { slot_match_id: team_id } for the current user.
-    myThirdSlots(s) {
-      const uid = this.myUserId
-      const map = {}
-      for (const t of s.thirdSlotPicks) if (t.user_id === uid) map[t.slot_match_id] = t.team_id
-      return map
+    // { match_id: advancing_team_id } for a given user.
+    bracketByMatchFor(s) {
+      return (uid) => {
+        const map = {}
+        for (const b of s.bracketPicks) if (b.user_id === uid) map[b.match_id] = b.advancing_team_id
+        return map
+      }
     },
+    // { slot_match_id: team_id } for a given user.
+    thirdSlotsFor(s) {
+      return (uid) => {
+        const map = {}
+        for (const t of s.thirdSlotPicks) if (t.user_id === uid) map[t.slot_match_id] = t.team_id
+        return map
+      }
+    },
+
+    // ---- Current user's own data (delegates to the *For accessors) ----
+    myPredByMatch() { return this.predByMatchFor(this.myUserId) },
+    myGroupOrder() { return this.groupOrderFor(this.myUserId) },
+    myChampion() { return this.championFor(this.myUserId) },
+    myBracketByMatch() { return this.bracketByMatchFor(this.myUserId) },
+    myThirdSlots() { return this.thirdSlotsFor(this.myUserId) },
     myKnockoutByRound(s) {
       const uid = this.myUserId
       const out = {}
@@ -169,20 +181,30 @@ export const usePredictionsStore = defineStore('predictions', {
       return rows
     },
 
-    // Per-match score breakdown for the current user (used in My Picks).
-    myMatchScore() {
+    // Per-match score breakdown for any user (used in My Picks / Player view).
+    matchScoreFor() {
       const ms = useMatchesStore()
-      return (matchId) => {
-        const p = this.myPredByMatch[matchId]
+      return (uid, matchId) => {
+        const p = this.predByMatchFor(uid)[matchId]
         const m = ms.matchById[matchId]
         return p && m ? scorePrediction(p, m) : null
       }
+    },
+    // Per-match score breakdown for the current user.
+    myMatchScore() {
+      return (matchId) => this.matchScoreFor(this.myUserId, matchId)
     }
   },
   actions: {
     async loadForLeague(leagueId) {
       if (!leagueId) { this._clear(); return }
       this.error = ''
+      // NOTE: this pulls every member's picks for the league, so all opponents'
+      // predictions are present client-side regardless of lock state. The Player
+      // view's "hidden until locked" rule is a UI gate only — not a security
+      // boundary. If picks must stay truly private until lock, enforce it with
+      // Supabase RLS (return another user's rows only once the match/bracket is
+      // locked) as a follow-up.
       try {
         const [pred, gp, kp, cp, bp, ts] = await Promise.all([
           supabase.from('predictions').select('*').eq('league_id', leagueId),

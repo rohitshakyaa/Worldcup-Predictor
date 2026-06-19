@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import Icon from '../components/Icon.vue'
 import { usePredictionsStore } from '../stores/predictions.js'
@@ -13,8 +14,14 @@ const ms = useMatchesStore()
 const { user } = storeToRefs(useAuthStore())
 const countAdv = computed(() => ms.accumulateAdvance)
 
+const router = useRouter()
 const rows = computed(() => ps.leaderboard)
 const me = computed(() => user.value?.id)
+// Your own entry opens your editable picks; everyone else opens their read-only page.
+const openPlayer = (userId) => {
+  if (!userId) return
+  router.push(userId === me.value ? '/picks' : `/player/${userId}`)
+}
 const podium = computed(() => {
   const r = rows.value
   // visual order: 2nd, 1st, 3rd
@@ -37,7 +44,8 @@ const initials = (n) => (n || '?').split(/\s+/).map((w) => w[0]).slice(0, 2).joi
       <!-- Podium -->
       <div v-if="rows.length" class="card p-4">
         <div class="grid grid-cols-3 items-end gap-2">
-          <div v-for="(p, i) in podium" :key="i" class="flex flex-col items-center">
+          <div v-for="(p, i) in podium" :key="i" class="flex flex-col items-center"
+               :class="{ 'cursor-pointer': p.row }" @click="openPlayer(p.row?.userId)">
             <template v-if="p.row">
               <div class="relative">
                 <div class="flex items-center justify-center rounded-full border border-white/15 bg-white/5 font-display font-bold"
@@ -67,8 +75,8 @@ const initials = (n) => (n || '?').split(/\s+/).map((w) => w[0]).slice(0, 2).joi
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(r, i) in rows" :key="r.userId" class="border-t border-white/5"
-                :class="{ 'bg-brand/10': r.userId === me }">
+            <tr v-for="(r, i) in rows" :key="r.userId" class="border-t border-white/5 cursor-pointer hover:bg-white/5"
+                :class="{ 'bg-brand/10': r.userId === me }" @click="openPlayer(r.userId)">
               <td class="py-2.5 pl-4 stat-num text-muted">{{ i + 1 }}</td>
               <td class="py-2.5 font-medium truncate max-w-[9rem]">
                 {{ r.name }}<span v-if="r.userId === me" class="ml-1 chip-done">you</span>

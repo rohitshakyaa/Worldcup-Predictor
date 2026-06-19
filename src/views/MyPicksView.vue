@@ -20,7 +20,8 @@ const myRows = computed(() => {
     if (!p) continue
     out.push({ m, p, score: ps.myMatchScore(m.id) })
   }
-  return out.sort((a, b) => a.m.match_no - b.m.match_no)
+  // Latest kickoff first (no round grouping).
+  return out.sort((a, b) => new Date(b.m.kickoff_utc) - new Date(a.m.kickoff_utc))
 })
 
 const myTotal = computed(() => {
