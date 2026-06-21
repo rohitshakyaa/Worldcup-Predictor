@@ -2,7 +2,7 @@
 // SCORING CONSTANTS — tweak here. Scoring is computed entirely in the browser
 // from locked match data + the player's predictions/picks.
 // ============================================================================
-export const STAGE_PTS = { group: 3, r32: 5, r16: 7, qf: 9, sf: 13, final: 17 }
+export const STAGE_PTS = { group: 3, r32: 5, r16: 7, qf: 9, sf: 13, third_place: 15, final: 17 }
 export const EXACT_BONUS = 2
 export const CLOSEST_BONUS = 1
 export const ADVANCE_PTS = 5
@@ -15,6 +15,7 @@ export const SCORE_KO_REACH = true        // score the bracket reach picks
 // connected bracket's advancers). R32 reach for the 8 thirds is THIRD_QUALIFY_PTS.
 export const KO_REACH_PTS = { r16: 2, qf: 3, sf: 4, final: 5 }
 export const THIRD_QUALIFY_PTS = 3        // each correctly-predicted best-8 third
+export const THIRD_PLACE_WIN_PTS = 7      // correctly picking the 3rd-place play-off winner
 
 const POSITION_SLOT_PTS = 1
 
@@ -23,8 +24,9 @@ export function resultOf(h, a) {
   return h > a ? 'H' : 'A'
 }
 
-// Knockout stages (everything except group + the non-scoring 3rd-place playoff).
-const KO_STAGES = new Set(['r32', 'r16', 'qf', 'sf', 'final'])
+// Knockout stages — a level result here is decided on pens/ET, so the drawn-KO
+// advancer rule applies. Includes the third-place play-off.
+const KO_STAGES = new Set(['r32', 'r16', 'qf', 'sf', 'third_place', 'final'])
 
 // Render a points value, allowing the .5 produced by the KO-draw rule but
 // dropping a trailing .0 (e.g. 5 -> "5", 2.5 -> "2.5").
@@ -38,10 +40,11 @@ export function matchFinished(m) {
 }
 
 // Score a single prediction against a finished match.
-// Returns { base, exact, closest, total }. Third-place playoff scores 0.
+// Returns { base, exact, closest, total }. Scored on the 90-minute result for
+// every match, including the third-place play-off.
 export function scorePrediction(pred, match) {
   const zero = { base: 0, exact: 0, closest: 0, total: 0 }
-  if (!pred || !matchFinished(match) || match.is_third_place_playoff) return zero
+  if (!pred || !matchFinished(match)) return zero
 
   const stagePts = STAGE_PTS[match.stage] || 0
   const actH = match.home_score

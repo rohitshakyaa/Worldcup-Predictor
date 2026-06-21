@@ -2,6 +2,8 @@ import { defineStore } from 'pinia'
 import { supabase, RESULTS_URL } from '../supabase.js'
 import { computeStandings, actualAdvancers } from '../lib/standings.js'
 import { fetchResults } from '../lib/results.js'
+import { matchFinished } from '../lib/scoring.js'
+import { routeThirds } from '../lib/annexC.js'
 
 const STAGE_ORDER = ['group', 'r32', 'r16', 'qf', 'sf', 'third_place', 'final']
 
@@ -46,7 +48,23 @@ export const useMatchesStore = defineStore('matches', {
     },
     isLocked: () => (m) => m.manual_lock || Date.now() >= new Date(m.kickoff_utc).getTime(),
     pretournamentLocked: (s) => s.config.pretournament_manual_lock === 'true',
-    accumulateAdvance: (s) => s.config.accumulate_advance === 'true'
+    accumulateAdvance: (s) => s.config.accumulate_advance === 'true',
+    // True once every group-stage match of group g is finished (top-2 final).
+    groupComplete() {
+      return (g) => {
+        const ms = this.matchesByStage.group.filter((m) => m.group_letter === g)
+        return ms.length > 0 && ms.every((m) => matchFinished(m))
+      }
+    },
+    allGroupsComplete() {
+      return this.groupLetters.length > 0 && this.groupLetters.every((g) => this.groupComplete(g))
+    },
+    // Admin override of the qualified third-place groups (array of letters), or null.
+    qualifiedThirdsOverride: (s) => {
+      const raw = s.config.qualified_thirds
+      if (!raw) return null
+      try { const a = JSON.parse(raw); return Array.isArray(a) && a.length ? a : null } catch { return null }
+    }
   },
   actions: {
     async load() {
@@ -137,6 +155,47 @@ export const useMatchesStore = defineStore('matches', {
         p_match_id: matchId, p_home_team: homeTeamId, p_away_team: awayTeamId
       })
       if (error) throw error
+      await this.load()
+    },
+    // Admin: persist which 8 third-placed groups qualified (array of letters).
+    async setQualifiedThirds(groupLetters) {
+      const { error } = await supabase.rpc('admin_set_qualified_thirds', { p_groups: groupLetters })
+      if (error) throw error
+      this.config = { ...this.config, qualified_thirds: JSON.stringify(groupLetters) }
+    },
+    // Admin: fill all 16 R32 matchups from actual standings + Annexe C routing
+    // of the qualified thirds. Group winners/runners-up come from the live
+    // standings order; third-place slots from routeThirds(chosen 8).
+    async resolveR32(qualifiedGroups) {
+      if (!this.allGroupsComplete) throw new Error('All group matches must be finished first')
+      const route = routeThirds(qualifiedGroups) // { slotMatchId: sourceGroupLetter } or null
+      if (!route) throw new Error('Pick exactly 8 qualified thirds first')
+      const groups = this.standings.groups
+      const teamFor = (ph, matchId) => {
+        let m
+        if ((m = /^([12])([A-L])$/.exec(ph))) return groups[m[2]]?.[+m[1] - 1]?.teamId ?? null
+        if (/^3/.test(ph)) { const g = route[matchId]; return g ? (groups[g]?.[2]?.teamId ?? null) : null }
+        return null
+      }
+      for (const mt of this.matchesByStage.r32 || []) {
+        const h = teamFor(mt.home_placeholder, mt.id)
+        const a = teamFor(mt.away_placeholder, mt.id)
+        const { error } = await supabase.rpc('admin_set_ko_teams', {
+          p_match_id: mt.id, p_home_team: h, p_away_team: a
+        })
+        if (error) throw error
+      }
+      await this.load()
+    },
+    // Admin: clear all R32 fixtures back to placeholders (undo an early resolve).
+    async unresolveR32() {
+      for (const mt of this.matchesByStage.r32 || []) {
+        if (!mt.home_team_id && !mt.away_team_id) continue
+        const { error } = await supabase.rpc('admin_set_ko_teams', {
+          p_match_id: mt.id, p_home_team: null, p_away_team: null
+        })
+        if (error) throw error
+      }
       await this.load()
     }
   }

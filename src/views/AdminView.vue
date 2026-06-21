@@ -1,21 +1,26 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import Icon from '../components/Icon.vue'
 import FlagImg from '../components/FlagImg.vue'
 import { useMatchesStore } from '../stores/matches.js'
 import { useLeaguesStore } from '../stores/leagues.js'
 import { formatDayDate, formatTime } from '../lib/time.js'
 import { matchFinished } from '../lib/scoring.js'
+import { routeThirds, THIRD_SLOT_MATCHES } from '../lib/annexC.js'
 
 const ms = useMatchesStore()
 const lg = useLeaguesStore()
+const route = useRoute()
 
-const section = ref('results')
 const SECTIONS = [
   { key: 'results', label: 'Results', icon: 'whistle' },
+  { key: 'knockout', label: 'Knockout', icon: 'bracket' },
   { key: 'locks', label: 'Locks', icon: 'lock' },
   { key: 'leagues', label: 'Leagues', icon: 'users' }
 ]
+const section = computed(() => SECTIONS.some((s) => s.key === route.params.section) ? route.params.section : 'results')
+const currentSection = computed(() => SECTIONS.find((s) => s.key === section.value) || SECTIONS[0])
 const toast = ref('')
 let toastT
 function notify(m) { toast.value = m; clearTimeout(toastT); toastT = setTimeout(() => (toast.value = ''), 3000) }
@@ -105,6 +110,47 @@ async function resolveKo(m) {
   })
 }
 
+// ---------- Knockout: best-8 thirds + resolve R32 ----------
+// Candidate thirds = the 3rd-placed team of every group, ranked best-first.
+const thirdCandidates = computed(() => ms.standings.bestThirds || [])
+// Group matches still unplayed (drives the "resolve too early" warning).
+const groupsRemaining = computed(() => (ms.matchesByStage.group || []).filter((m) => !matchFinished(m)).length)
+// Whether any R32 fixture currently has resolved teams (so Unresolve is offered).
+const r32Resolved = computed(() => (ms.matchesByStage.r32 || []).some((m) => m.home_team_id || m.away_team_id))
+const koThirds = ref(new Set()) // selected group letters
+let koThirdsInit = false
+const initKoThirds = () => {
+  const override = ms.qualifiedThirdsOverride
+  if (override) koThirds.value = new Set(override)
+  else koThirds.value = new Set((ms.standings.bestThirds || []).slice(0, 8).map((r) => r.group))
+  koThirdsInit = true
+}
+// Seed the selection once standings are available.
+watch(() => ms.standings.bestThirds, (rows) => { if (!koThirdsInit && rows && rows.length) initKoThirds() }, { immediate: true })
+function toggleKoThird(g) {
+  const s = new Set(koThirds.value)
+  if (s.has(g)) s.delete(g)
+  else { if (s.size >= 8) { notify('Pick exactly 8 — deselect one first'); return } s.add(g) }
+  koThirds.value = s
+}
+async function saveKoThirds() {
+  if (koThirds.value.size !== 8) { notify('Pick exactly 8 thirds'); return }
+  await guard(async () => { await ms.setQualifiedThirds([...koThirds.value].sort()); notify('Best thirds saved') })
+}
+async function resolveR32() {
+  if (koThirds.value.size !== 8) { notify('Pick exactly 8 thirds'); return }
+  if (!ms.allGroupsComplete) { notify('Finish all group matches first'); return }
+  await guard(async () => {
+    await ms.setQualifiedThirds([...koThirds.value].sort())
+    await ms.resolveR32([...koThirds.value].sort())
+    notify('Round of 32 resolved')
+  })
+}
+async function unresolveR32() {
+  if (!confirm('Clear all Round-of-32 teams back to placeholders? Player picks are unaffected.')) return
+  await guard(async () => { await ms.unresolveR32(); notify('Round of 32 cleared') })
+}
+
 // ---------- Locks ----------
 async function toggleStage(st, locked) { await guard(() => ms.setStageLock(st, locked)) }
 async function togglePre() { await guard(() => ms.setPretournamentLock(!ms.pretournamentLocked)) }
@@ -137,16 +183,8 @@ const memberName = (m) => m.profiles?.display_name || m.profiles?.email || m.use
 <template>
   <div class="space-y-4">
     <div class="flex items-center gap-2">
-      <Icon name="shield" :size="22" class="text-brand" />
-      <h2 class="font-display text-2xl font-bold">Admin</h2>
-    </div>
-
-    <!-- section switcher -->
-    <div class="flex gap-1.5 overflow-x-auto pb-1">
-      <button v-for="s in SECTIONS" :key="s.key" class="btn-ghost btn-sm whitespace-nowrap"
-        :class="{ '!bg-brand !text-brand-ink': section === s.key }" @click="section = s.key">
-        <Icon :name="s.icon" :size="14" /> {{ s.label }}
-      </button>
+      <Icon :name="currentSection.icon" :size="22" class="text-brand" />
+      <h2 class="font-display text-2xl font-bold">{{ currentSection.label }}</h2>
     </div>
 
     <!-- ===== RESULTS ===== -->
@@ -225,6 +263,45 @@ const memberName = (m) => m.profiles?.display_name || m.profiles?.email || m.use
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- ===== KNOCKOUT (best thirds → resolve R32) ===== -->
+    <div v-else-if="section === 'knockout'" class="space-y-3">
+      <div class="card p-3 space-y-2">
+        <div class="flex items-center justify-between">
+          <h3 class="font-bold">Best 8 third-placed teams</h3>
+          <span class="chip" :class="koThirds.size === 8 ? 'chip-done' : 'chip-live'">{{ koThirds.size }}/8</span>
+        </div>
+        <p class="text-xs text-muted">
+          Ranked best-first from live standings. The top 8 are preselected — adjust if needed, then
+          resolve the Round of 32. Group winners/runners-up and Annexe C third-place routing are filled automatically.
+        </p>
+        <div v-if="!thirdCandidates.length" class="text-xs text-muted">Standings need finished group matches first.</div>
+        <div v-else class="grid grid-cols-2 gap-1 sm:grid-cols-3">
+          <button v-for="(r, i) in thirdCandidates" :key="r.teamId"
+            class="flex items-center gap-2 rounded-lg border border-white/10 px-2 py-1.5 text-left text-sm"
+            :class="koThirds.has(r.group) ? 'qualify font-semibold' : 'bg-surface'"
+            @click="toggleKoThird(r.group)">
+            <span class="w-3 text-center">{{ koThirds.has(r.group) ? '✓' : '' }}</span>
+            <FlagImg :code="team(r.teamId)?.flag_code" size="w-5" />
+            <span class="truncate">{{ team(r.teamId)?.name }}</span>
+            <span class="ml-auto text-[11px] text-muted">3{{ r.group }} · #{{ i + 1 }}</span>
+          </button>
+        </div>
+
+        <!-- Resolving early would lock in wrong teams — gate it on group completion. -->
+        <div v-if="!ms.allGroupsComplete" class="rounded-lg border border-amber-400/30 bg-amber-400/10 p-2 text-xs text-amber-200">
+          ⚠️ Round of 32 can only be resolved once <strong>every group match is finished</strong>.
+          {{ groupsRemaining }} group match{{ groupsRemaining === 1 ? '' : 'es' }} still to play.
+        </div>
+
+        <div class="flex flex-wrap items-center gap-1.5 pt-1">
+          <button class="btn-ghost btn-sm" :disabled="koThirds.size !== 8 || !ms.allGroupsComplete" @click="saveKoThirds">Save thirds</button>
+          <button class="btn-brand btn-sm" :disabled="koThirds.size !== 8 || !ms.allGroupsComplete" @click="resolveR32">Resolve R32 teams</button>
+          <button v-if="r32Resolved" class="btn-danger btn-sm" @click="unresolveR32">Unresolve R32</button>
+        </div>
+        <p v-if="r32Resolved" class="text-[11px] text-muted">Unresolve clears the R32 teams back to placeholders (e.g. if resolved too early).</p>
       </div>
     </div>
 

@@ -6,15 +6,25 @@ import { useAuthStore } from '../stores/auth.js'
 
 const { isAdmin } = storeToRefs(useAuthStore())
 const tabs = computed(() => {
-  const base = [
+  // Admins operate the tournament — they get dedicated admin tabs instead of
+  // the player's Matches/Bracket/Picks.
+  if (isAdmin.value) {
+    return [
+      { to: '/groups', label: 'Groups', icon: 'groups' },
+      { to: '/admin/results', label: 'Results', icon: 'whistle' },
+      { to: '/admin/knockout', label: 'Knockout', icon: 'bracket' },
+      { to: '/admin/locks', label: 'Locks', icon: 'lock' },
+      { to: '/admin/leagues', label: 'Leagues', icon: 'users' },
+      { to: '/leaderboard', label: 'Table', icon: 'chart' }
+    ]
+  }
+  return [
     { to: '/groups', label: 'Groups', icon: 'groups' },
     { to: '/matches', label: 'Matches', icon: 'ball' },
     { to: '/bracket', label: 'Bracket', icon: 'bracket' },
     { to: '/picks', label: 'Picks', icon: 'picks' },
     { to: '/leaderboard', label: 'Table', icon: 'chart' }
   ]
-  if (isAdmin.value) base.push({ to: '/admin', label: 'Admin', icon: 'shield' })
-  return base
 })
 </script>
 

@@ -21,7 +21,7 @@ const routes = [
   { path: '/player/:userId', component: PlayerView },
   { path: '/leaderboard', component: LeaderboardView },
   { path: '/rules', component: RulesView },
-  { path: '/admin', component: AdminView, meta: { admin: true } }
+  { path: '/admin/:section?', component: AdminView, meta: { admin: true } }
 ]
 
 // Hash history: portable to GitHub Pages subpaths, Netlify, and Vercel with no

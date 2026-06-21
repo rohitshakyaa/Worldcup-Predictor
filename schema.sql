@@ -372,6 +372,24 @@ begin
 end;
 $$;
 
+-- Admin: persist which third-placed groups qualified (8 single-letter codes).
+-- Stored as a JSON array string under app_config key 'qualified_thirds'; used to
+-- route the actual Round-of-32 third-place slots via FIFA Annexe C.
+create or replace function public.admin_set_qualified_thirds(p_groups text[])
+returns void
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  if not public.is_admin() then
+    raise exception 'Admin only';
+  end if;
+  insert into public.app_config (key, value)
+  values ('qualified_thirds', to_jsonb(p_groups)::text)
+  on conflict (key) do update set value = excluded.value;
+end;
+$$;
+
 -- ============================================================================
 -- WRITE RPCs (the ONLY way clients write predictions / picks)
 -- ============================================================================
@@ -703,6 +721,7 @@ grant execute on function public.save_bracket_pick(uuid,integer,integer)        
 grant execute on function public.save_third_slot(uuid,integer,integer)           to authenticated;
 grant execute on function public.admin_set_pretournament_lock(boolean)           to authenticated;
 grant execute on function public.admin_set_accumulate_advance(boolean)           to authenticated;
+grant execute on function public.admin_set_qualified_thirds(text[])              to authenticated;
 grant execute on function public.join_league(text)                              to authenticated;
 grant execute on function public.admin_add_member(uuid,text)                    to authenticated;
 grant execute on function public.admin_remove_member(uuid,uuid)                 to authenticated;

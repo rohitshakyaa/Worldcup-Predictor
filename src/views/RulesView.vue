@@ -1,7 +1,7 @@
 <script setup>
 import {
   STAGE_PTS, EXACT_BONUS, CLOSEST_BONUS, ADVANCE_PTS, CHAMPION_PTS,
-  THIRD_QUALIFY_PTS, KO_REACH_PTS, SCORE_KO_REACH, SCORE_EXACT_POSITION
+  THIRD_QUALIFY_PTS, KO_REACH_PTS, THIRD_PLACE_WIN_PTS, SCORE_KO_REACH, SCORE_EXACT_POSITION
 } from '../lib/scoring.js'
 
 const stageRows = [
@@ -10,8 +10,28 @@ const stageRows = [
   ['Round of 16', STAGE_PTS.r16],
   ['Quarter-final', STAGE_PTS.qf],
   ['Semi-final', STAGE_PTS.sf],
+  ['Third-place play-off', STAGE_PTS.third_place],
   ['Final', STAGE_PTS.final]
 ]
+
+// Maximum points from a perfect pre-tournament bracket (WC2026 structure:
+// 12 groups → 24 advancers, 8 best thirds, then 16/8/4/2 KO winners reach
+// R16/QF/SF/Final). Derived from the scoring constants so it stays in sync.
+const advancersMax = 12 * 2 * ADVANCE_PTS
+const thirdsMax = SCORE_KO_REACH ? 8 * THIRD_QUALIFY_PTS : 0
+const reachMax = SCORE_KO_REACH
+  ? 16 * KO_REACH_PTS.r16 + 8 * KO_REACH_PTS.qf + 4 * KO_REACH_PTS.sf + 2 * KO_REACH_PTS.final
+  : 0
+const championMax = CHAMPION_PTS
+const thirdPlaceMax = THIRD_PLACE_WIN_PTS
+const bracketRows = [
+  ['Group top-2 (24 × +' + ADVANCE_PTS + ')', advancersMax],
+  ['Best-8 thirds (8 × +' + THIRD_QUALIFY_PTS + ')', thirdsMax],
+  ['Knockout reach (16·' + KO_REACH_PTS.r16 + ' + 8·' + KO_REACH_PTS.qf + ' + 4·' + KO_REACH_PTS.sf + ' + 2·' + KO_REACH_PTS.final + ')', reachMax],
+  ['Third-place winner', thirdPlaceMax],
+  ['Champion', championMax]
+].filter(([, pts]) => pts > 0)
+const bracketMaxTotal = advancersMax + thirdsMax + reachMax + thirdPlaceMax + championMax
 </script>
 
 <template>
@@ -41,7 +61,6 @@ const stageRows = [
       <ul class="mt-1 space-y-1 text-sm">
         <li>🎯 <strong>+{{ EXACT_BONUS }} exact score</strong> — both teams' goals correct. Stacks on the result points.</li>
         <li>📏 <strong>+{{ CLOSEST_BONUS }} closest</strong> — exactly <em>one</em> team's goals correct (e.g. actual 2–1, you said 2–3 → home 2 ✓). Never given together with the exact bonus, and can score even if you got the result wrong.</li>
-        <li>🚫 The third-place play-off is <strong>not scored</strong>.</li>
       </ul>
       <div class="mt-2 rounded-lg border border-white/10 bg-white/[0.04] p-2.5 text-sm">
         <p class="font-semibold">⚽ Knockout draws &amp; penalties</p>
@@ -49,7 +68,7 @@ const stageRows = [
         <ul class="mt-1 space-y-1">
           <li>✅ Correct draw <strong>+ correct team advances</strong> → <strong>full</strong> round points.</li>
           <li>½ Correct draw <strong>but wrong team advances</strong> → <strong>half</strong> the round points (e.g. R32 2.5, Final 8.5).</li>
-          <li>The exact &amp; closest goal bonuses are unaffected. Group games never need an advancer.</li>
+          <li>The exact &amp; closest goal bonuses are unaffected. Group games and the third-place play-off never need an advancer.</li>
         </ul>
       </div>
     </div>
@@ -67,9 +86,27 @@ const stageRows = [
           <strong>SF +{{ KO_REACH_PTS.sf }}</strong> ·
           <strong>Final +{{ KO_REACH_PTS.final }}</strong>.
         </li>
+        <li>🥉 <strong>+{{ THIRD_PLACE_WIN_PTS }}</strong> for correctly picking the <strong>third-place play-off winner</strong> (also scored as a normal match prediction).</li>
         <li>🏆 <strong>+{{ CHAMPION_PTS }}</strong> for the correct champion.</li>
         <li v-if="SCORE_EXACT_POSITION">🔢 +1 for each group slot (1–4) predicted in the exact position.</li>
       </ul>
+
+      <div class="mt-2 rounded-lg border border-brand/30 bg-brand/5 p-2.5 text-sm">
+        <p class="font-semibold">🧮 Maximum from a perfect bracket</p>
+        <table class="mt-1 w-full">
+          <tbody>
+            <tr v-for="[label, pts] in bracketRows" :key="label" class="border-t border-white/10 first:border-0">
+              <td class="py-1">{{ label }}</td>
+              <td class="py-1 text-right font-bold tabular-nums">+{{ pts }}</td>
+            </tr>
+            <tr class="border-t border-white/20">
+              <td class="py-1.5 font-bold">Total</td>
+              <td class="py-1.5 text-right font-extrabold tabular-nums text-brand">{{ bracketMaxTotal }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="mt-1 text-[11px] text-muted">A flawless bracket is worth <strong>{{ bracketMaxTotal }}</strong> points — on top of whatever you score from individual match predictions.</p>
+      </div>
     </div>
 
     <!-- Format -->

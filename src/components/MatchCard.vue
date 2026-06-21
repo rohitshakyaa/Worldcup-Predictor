@@ -34,8 +34,9 @@ watch(myPred, (p) => {
   adv.value = p?.advancing_team_id ?? null
 }, { immediate: true })
 
-// A KO match the player has predicted to finish level needs an advancer pick.
-const isKo = computed(() => props.match.stage !== 'group' && !props.match.is_third_place_playoff)
+// A KO match the player has predicted to finish level needs an advancer pick
+// (includes the third-place play-off — it's decided on pens/ET too).
+const isKo = computed(() => props.match.stage !== 'group')
 const predictedDraw = computed(() => ph.value !== '' && pa.value !== '' && Number(ph.value) === Number(pa.value))
 const needsAdvancer = computed(() => isKo.value && predictedDraw.value)
 
@@ -56,8 +57,7 @@ const score = computed(() => (myPred.value ? ps.myMatchScore(props.match.id) : n
   <div class="card p-3">
     <div class="flex items-center justify-between text-[11px] text-muted">
       <span>{{ formatKickoff(match.kickoff_utc) }}</span>
-      <span v-if="match.is_third_place_playoff" class="chip-muted">non-scoring</span>
-      <span v-else-if="finished" class="chip-done"><Icon name="check" :size="11" /> final</span>
+      <span v-if="finished" class="chip-done"><Icon name="check" :size="11" /> final</span>
       <span v-else-if="locked" class="chip-lock"><Icon name="lock" :size="11" /> locked</span>
     </div>
     <div class="mt-0.5 text-[10px] text-muted">{{ match.venue }} · #{{ match.match_no }}</div>
@@ -79,7 +79,7 @@ const score = computed(() => (myPred.value ? ps.myMatchScore(props.match.id) : n
     </div>
 
     <!-- Prediction -->
-    <div v-if="!match.is_third_place_playoff" class="mt-3 border-t border-white/5 pt-3">
+    <div class="mt-3 border-t border-white/5 pt-3">
       <div class="flex items-center justify-between">
         <span class="label">Your prediction</span>
         <span v-if="score && score.total" class="chip-done">+{{ formatPts(score.total) }} pts</span>

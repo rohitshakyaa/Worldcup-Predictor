@@ -6,9 +6,13 @@ import { usePredictionsStore } from '../stores/predictions.js'
 import { useLeaguesStore } from '../stores/leagues.js'
 import { useAuthStore } from '../stores/auth.js'
 import FlagImg from '../components/FlagImg.vue'
+import AdvChip from '../components/AdvChip.vue'
 import { formatKickoff } from '../lib/time.js'
-import { ADVANCE_PTS, CHAMPION_PTS, THIRD_QUALIFY_PTS, KO_REACH_PTS } from '../lib/scoring.js'
+import { ADVANCE_PTS, CHAMPION_PTS, THIRD_QUALIFY_PTS, KO_REACH_PTS, THIRD_PLACE_WIN_PTS, matchFinished } from '../lib/scoring.js'
 import { routeThirds, THIRD_SLOT_MATCHES } from '../lib/annexC.js'
+
+// Which KO round a winner of `stage` reaches next (drives reach points).
+const REACH_ROUND = { r32: 'r16', r16: 'qf', qf: 'sf', sf: 'final' }
 
 const ms = useMatchesStore()
 const ps = usePredictionsStore()
@@ -21,7 +25,6 @@ const KO_LABEL = { r32: 'Round of 32', r16: 'Round of 16', qf: 'Quarter-finals',
 const KO_STAGES = ['r32', 'r16', 'qf', 'sf', 'final']
 
 const orders = ref({})
-const champion = ref(null)
 const selectedThirds = ref(new Set()) // group letters whose 3rd advances
 const status = ref('idle')
 const toast = ref('')
@@ -36,7 +39,6 @@ function initLocal() {
     o[g] = saved && saved.filter(Boolean).length === 4 ? saved.slice() : teams
   }
   orders.value = o
-  champion.value = ps.myChampion
   // Reconstruct the selected thirds from any saved third-slot assignments.
   const s = new Set()
   for (const tid of Object.values(ps.myThirdSlots)) {
@@ -47,9 +49,43 @@ function initLocal() {
 watch([() => ps.loaded, () => ms.loaded], initLocal, { immediate: true })
 
 const team = (id) => ms.teamById[id]
-const allTeams = computed(() => ms.teams.slice().sort((a, b) => a.name.localeCompare(b.name)))
 const advOf = (mId) => ps.myBracketByMatch[mId]
 const isThirdSlot = (m) => /^3/.test(m.away_placeholder || '')
+// Champion = the winner you pick for the Final (derived, not a separate pick).
+const championId = computed(() => ps.myChampion)
+
+// ----- advance-point states -----
+// Table-driven picks track the LIVE standings: likely (on track) / pending
+// (off track) while undecided, then earned / missed once final.
+function top2State(g, tid) {
+  const onTrack = ms.advancers[g]?.has(tid)
+  if (!ms.groupComplete(g)) return onTrack ? 'likely' : 'pending'
+  return onTrack ? 'earned' : 'missed'
+}
+function thirdState(tid) {
+  if (!ms.allGroupsComplete) return ms.standings.qualifiedThirdIds.has(tid) ? 'likely' : 'pending'
+  const q = ps.actualQualifiedThirdIds // override-aware final set
+  return q && q.has(tid) ? 'earned' : 'missed'
+}
+// KO reach pick: decided once that match's actual result is in.
+function reachRound(m) { return REACH_ROUND[m.stage] }
+function reachState(m) {
+  const picked = advOf(m.id)
+  if (!picked || !matchFinished(m)) return 'pending'
+  return ps.actualReachByRound[reachRound(m)]?.has(picked) ? 'earned' : 'missed'
+}
+function championState() {
+  const actual = ps.actualChampionId
+  if (actual == null) return 'pending'
+  return championId.value === actual ? 'earned' : 'missed'
+}
+// 3rd-place winner pick: decided once the play-off result is in.
+function thirdPlaceState(m) {
+  const picked = advOf(m.id)
+  const actual = ps.actualThirdPlaceId
+  if (!picked || actual == null) return 'pending'
+  return picked === actual ? 'earned' : 'missed'
+}
 
 function flashSaved() {
   status.value = 'saved'; clearTimeout(statusTimer)
@@ -164,10 +200,6 @@ function scheduleGroupSave(g) {
     })
   }, 700)
 }
-function onChampion(e) {
-  champion.value = e.target.value ? Number(e.target.value) : null
-  if (champion.value) withStatus(() => ps.saveChampion(lg.currentLeagueId, champion.value))
-}
 function pickWinner(match, teamId) {
   if (locked.value || !teamId) return
   withStatus(async () => {
@@ -189,7 +221,7 @@ async function toggleLock() {
           <p class="text-sm text-muted">
             Top 2 per group <strong>+{{ ADVANCE_PTS }}</strong> each · each correct best-third <strong>+{{ THIRD_QUALIFY_PTS }}</strong> ·
             reach R16/QF/SF/Final <strong>+{{ KO_REACH_PTS.r16 }}/{{ KO_REACH_PTS.qf }}/{{ KO_REACH_PTS.sf }}/{{ KO_REACH_PTS.final }}</strong> ·
-            champion <strong>+{{ CHAMPION_PTS }}</strong>.
+            3rd-place winner <strong>+{{ THIRD_PLACE_WIN_PTS }}</strong> · champion <strong>+{{ CHAMPION_PTS }}</strong>.
           </p>
         </div>
         <div class="flex flex-col items-end gap-1">
@@ -205,15 +237,18 @@ async function toggleLock() {
       <p class="mt-1 text-[11px] text-muted">Auto-saves. Third-place matchups follow FIFA's official Annexe C routing.</p>
     </div>
 
-    <!-- Champion -->
+    <!-- Champion — derived from your Final winner pick below -->
     <div class="card p-3 space-y-2">
-      <span class="label">Champion (+{{ CHAMPION_PTS }})</span>
+      <div class="flex items-center justify-between">
+        <span class="label">Champion (+{{ CHAMPION_PTS }})</span>
+        <AdvChip v-if="locked && championId" :pts="CHAMPION_PTS" :state="championState()" />
+      </div>
       <div class="flex items-center gap-2">
-        <FlagImg v-if="champion" :code="team(champion)?.flag_code" />
-        <select class="input" :value="champion" :disabled="locked" @change="onChampion">
-          <option :value="''" disabled>Pick a team…</option>
-          <option v-for="t in allTeams" :key="t.id" :value="t.id">{{ t.name }}</option>
-        </select>
+        <template v-if="championId">
+          <FlagImg :code="team(championId)?.flag_code" />
+          <span class="font-semibold">{{ team(championId)?.name }}</span>
+        </template>
+        <span v-else class="text-sm text-muted">Pick the winner of the Final below.</span>
       </div>
     </div>
 
@@ -230,6 +265,7 @@ async function toggleLock() {
               <span class="w-4 text-center text-xs font-bold text-muted">{{ idx + 1 }}</span>
               <FlagImg :code="team(tid)?.flag_code" size="w-5" />
               <span class="truncate text-sm font-medium">{{ team(tid)?.name }}</span>
+              <AdvChip v-if="locked && idx < 2" :pts="ADVANCE_PTS" :state="top2State(g, tid)" class="ml-1 shrink-0" />
               <div v-if="!locked" class="ml-auto flex gap-1">
                 <button class="btn-ghost btn-sm !px-2 !py-0.5" :disabled="idx===0" @click="move(g, idx, -1)">▲</button>
                 <button class="btn-ghost btn-sm !px-2 !py-0.5" :disabled="idx===3" @click="move(g, idx, 1)">▼</button>
@@ -256,6 +292,7 @@ async function toggleLock() {
           <span class="w-3 text-center">{{ selectedThirds.has(c.group) ? '✓' : '' }}</span>
           <FlagImg :code="team(c.teamId)?.flag_code" size="w-5" />
           <span class="truncate">{{ team(c.teamId)?.name }}</span>
+          <AdvChip v-if="locked && selectedThirds.has(c.group)" :pts="THIRD_QUALIFY_PTS" :state="thirdState(c.teamId)" />
           <span class="ml-auto text-[11px] text-muted">3{{ c.group }}</span>
         </button>
       </div>
@@ -270,7 +307,10 @@ async function toggleLock() {
         <div class="label mb-1">{{ KO_LABEL[stage] }}</div>
         <div class="grid gap-2 sm:grid-cols-2">
           <div v-for="m in ms.matchesByStage[stage]" :key="m.id" class="rounded-xl border border-white/10 p-2">
-            <div class="text-[10px] text-muted">#{{ m.match_no }} · {{ formatKickoff(m.kickoff_utc) }}</div>
+            <div class="flex items-center justify-between text-[10px] text-muted">
+              <span>#{{ m.match_no }} · {{ formatKickoff(m.kickoff_utc) }}</span>
+              <AdvChip v-if="locked && reachRound(m) && advOf(m.id)" :pts="KO_REACH_PTS[reachRound(m)]" :state="reachState(m)" />
+            </div>
 
             <button
               class="mt-1 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left"
@@ -296,7 +336,29 @@ async function toggleLock() {
           </div>
         </div>
       </div>
-      <p class="mt-2 text-[11px] text-muted">Champion (+{{ CHAMPION_PTS }}) is picked separately above.</p>
+
+      <!-- Third-place play-off — pick the winner (+THIRD_PLACE_WIN_PTS) -->
+      <div v-if="ms.matchesByStage.third_place?.length" class="mt-3">
+        <div class="label mb-1">Third-place play-off (+{{ THIRD_PLACE_WIN_PTS }})</div>
+        <div class="grid gap-2 sm:grid-cols-2">
+          <div v-for="m in ms.matchesByStage.third_place" :key="m.id" class="rounded-xl border border-white/10 p-2">
+            <div class="flex items-center justify-between text-[10px] text-muted">
+              <span>#{{ m.match_no }} · {{ formatKickoff(m.kickoff_utc) }} · also scored in Matches</span>
+              <AdvChip v-if="locked && advOf(m.id)" :pts="THIRD_PLACE_WIN_PTS" :state="thirdPlaceState(m)" />
+            </div>
+            <button v-for="side in ['home','away']" :key="side"
+              class="mt-1 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left"
+              :class="advOf(m.id) && advOf(m.id) === resolved[m.id]?.[side] ? 'qualify font-semibold' : 'hover:bg-white/5'"
+              :disabled="locked || !resolved[m.id]?.[side]"
+              @click="pickWinner(m, resolved[m.id]?.[side])">
+              <FlagImg :code="team(resolved[m.id]?.[side])?.flag_code" size="w-5" />
+              <span class="truncate text-sm">{{ team(resolved[m.id]?.[side])?.name || (side === 'home' ? m.home_placeholder : m.away_placeholder) }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <p class="mt-2 text-[11px] text-muted">The team you advance from the Final is your Champion (+{{ CHAMPION_PTS }}), shown above.</p>
     </div>
 
     <div v-if="toast" class="fixed inset-x-0 bottom-24 z-30 flex justify-center px-4">

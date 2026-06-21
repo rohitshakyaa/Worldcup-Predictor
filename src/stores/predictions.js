@@ -5,7 +5,7 @@ import { useLeaguesStore } from './leagues.js'
 import { useAuthStore } from './auth.js'
 import {
   scorePrediction, scoreAdvance, scoreExactPositions, scoreChampion, matchFinished,
-  scoreKoReach, scoreThirds
+  scoreKoReach, scoreThirds, THIRD_PLACE_WIN_PTS
 } from '../lib/scoring.js'
 
 // stage -> the round a winner of that stage REACHES next.
@@ -44,8 +44,24 @@ export const usePredictionsStore = defineStore('predictions', {
         return out
       }
     },
-    championFor(s) {
-      return (uid) => s.championPicks.find((c) => c.user_id === uid)?.team_id || null
+    // Champion = the team the player picked to win the final (single source of
+    // truth — derived from the connected bracket, not a separate pick).
+    championFor() {
+      return (uid) => {
+        const ms = useMatchesStore()
+        const final = ms.matches.find((m) => m.stage === 'final')
+        if (!final) return null
+        return this.bracketByMatchFor(uid)[final.id] ?? null
+      }
+    },
+    // Third-place winner the player picked (bracket pick on the 3rd-place match).
+    thirdPlacePickFor() {
+      return (uid) => {
+        const ms = useMatchesStore()
+        const tp = ms.matches.find((m) => m.stage === 'third_place')
+        if (!tp) return null
+        return this.bracketByMatchFor(uid)[tp.id] ?? null
+      }
     },
     // { match_id: advancing_team_id } for a given user.
     bracketByMatchFor(s) {
@@ -68,6 +84,7 @@ export const usePredictionsStore = defineStore('predictions', {
     myPredByMatch() { return this.predByMatchFor(this.myUserId) },
     myGroupOrder() { return this.groupOrderFor(this.myUserId) },
     myChampion() { return this.championFor(this.myUserId) },
+    myThirdPlace() { return this.thirdPlacePickFor(this.myUserId) },
     myBracketByMatch() { return this.bracketByMatchFor(this.myUserId) },
     myThirdSlots() { return this.thirdSlotsFor(this.myUserId) },
     myKnockoutByRound(s) {
@@ -88,6 +105,46 @@ export const usePredictionsStore = defineStore('predictions', {
       // A final level at 90' is decided on pens/ET — the admin records the winner.
       if (final.home_score === final.away_score) return final.advancing_team_id ?? null
       return final.home_score > final.away_score ? final.home_team_id : final.away_team_id
+    },
+
+    // ---- Actual third-place play-off winner ----
+    actualThirdPlaceId() {
+      const ms = useMatchesStore()
+      const tp = ms.matches.find((m) => m.stage === 'third_place')
+      if (!tp || !matchFinished(tp)) return null
+      if (tp.home_score === tp.away_score) return tp.advancing_team_id ?? null
+      return tp.home_score > tp.away_score ? tp.home_team_id : tp.away_team_id
+    },
+
+    // ---- Actual qualified best-8 thirds (override-aware), or null if undecided ----
+    // Undecided until EVERY group match is finished — the thirds aren't real
+    // before then, even if the admin pre-saved an override. Uses the admin's
+    // chosen groups when present, else the live standings ranking.
+    actualQualifiedThirdIds() {
+      const ms = useMatchesStore()
+      if (!ms.allGroupsComplete) return null
+      const override = ms.qualifiedThirdsOverride
+      if (override) {
+        const ids = new Set()
+        for (const g of override) {
+          const tid = ms.standings.groups[g]?.[2]?.teamId
+          if (tid != null) ids.add(tid)
+        }
+        return ids
+      }
+      return ms.standings.qualifiedThirdIds
+    },
+
+    // ---- Teams that actually REACHED each KO round (from resolved matchups) ----
+    actualReachByRound() {
+      const ms = useMatchesStore()
+      const reach = { r16: new Set(), qf: new Set(), sf: new Set(), final: new Set() }
+      for (const m of ms.matches) {
+        if (!(m.stage in reach)) continue
+        if (m.home_team_id) reach[m.stage].add(m.home_team_id)
+        if (m.away_team_id) reach[m.stage].add(m.away_team_id)
+      }
+      return reach
     },
 
     // ---- Leaderboard rows with breakdown ----
@@ -140,20 +197,30 @@ export const usePredictionsStore = defineStore('predictions', {
         }
       }
 
-      // Champion.
-      for (const c of this.championPicks) {
-        const u = ensure(c.user_id)
-        u.champion += scoreChampion(c.team_id, championId)
+      // Champion = winner of the final in each player's connected bracket.
+      const finalMatch = ms.matches.find((m) => m.stage === 'final')
+      if (finalMatch) {
+        for (const b of this.bracketPicks) {
+          if (b.match_id !== finalMatch.id) continue
+          ensure(b.user_id).champion += scoreChampion(b.advancing_team_id, championId)
+        }
+      }
+
+      // Third-place play-off winner pick → counts as an advance point.
+      const tpMatch = ms.matches.find((m) => m.stage === 'third_place')
+      if (tpMatch) {
+        const actualTp = this.actualThirdPlaceId
+        for (const b of this.bracketPicks) {
+          if (b.match_id !== tpMatch.id) continue
+          if (actualTp != null && b.advancing_team_id === actualTp) ensure(b.user_id).advances += THIRD_PLACE_WIN_PTS
+        }
       }
 
       // Pre-tournament bracket: best-8 thirds + reach picks (added to "advances").
-      const qualThirds = ms.standings.qualifiedThirdIds
-      const actualReach = { r16: new Set(), qf: new Set(), sf: new Set(), final: new Set() }
-      for (const m of ms.matches) {
-        if (!(m.stage in actualReach)) continue
-        if (m.home_team_id) actualReach[m.stage].add(m.home_team_id)
-        if (m.away_team_id) actualReach[m.stage].add(m.away_team_id)
-      }
+      // Honour the admin's qualified-thirds override so player scoring matches
+      // exactly what was resolved into the bracket.
+      const qualThirds = this.actualQualifiedThirdIds || new Set()
+      const actualReach = this.actualReachByRound
       const predReach = {}
       for (const b of this.bracketPicks) {
         const mt = ms.matchById[b.match_id]
