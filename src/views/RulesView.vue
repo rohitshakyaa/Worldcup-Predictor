@@ -43,6 +43,15 @@ const stageRows = [
         <li>📏 <strong>+{{ CLOSEST_BONUS }} closest</strong> — exactly <em>one</em> team's goals correct (e.g. actual 2–1, you said 2–3 → home 2 ✓). Never given together with the exact bonus, and can score even if you got the result wrong.</li>
         <li>🚫 The third-place play-off is <strong>not scored</strong>.</li>
       </ul>
+      <div class="mt-2 rounded-lg border border-white/10 bg-white/[0.04] p-2.5 text-sm">
+        <p class="font-semibold">⚽ Knockout draws &amp; penalties</p>
+        <p class="mt-1">A knockout match can finish level after 90 minutes and be decided on penalties/extra time. If you predict a <strong>draw</strong> in a knockout match, you also pick <strong>who advances</strong>.</p>
+        <ul class="mt-1 space-y-1">
+          <li>✅ Correct draw <strong>+ correct team advances</strong> → <strong>full</strong> round points.</li>
+          <li>½ Correct draw <strong>but wrong team advances</strong> → <strong>half</strong> the round points (e.g. R32 2.5, Final 8.5).</li>
+          <li>The exact &amp; closest goal bonuses are unaffected. Group games never need an advancer.</li>
+        </ul>
+      </div>
     </div>
 
     <!-- Pre-tournament bracket -->

@@ -6,7 +6,7 @@ import { useMatchesStore } from '../stores/matches.js'
 import { usePredictionsStore } from '../stores/predictions.js'
 import { useLeaguesStore } from '../stores/leagues.js'
 import { formatKickoff } from '../lib/time.js'
-import { matchFinished } from '../lib/scoring.js'
+import { matchFinished, formatPts } from '../lib/scoring.js'
 
 const props = defineProps({ match: { type: Object, required: true } })
 
@@ -25,15 +25,27 @@ const canPredict = computed(() => home.value && away.value && !locked.value && l
 const myPred = computed(() => ps.myPredByMatch[props.match.id])
 const ph = ref('')
 const pa = ref('')
+const adv = ref(null) // who the player thinks advances on pens/ET (drawn KO only)
 const predMsg = ref('')
 const saving = ref(false)
-watch(myPred, (p) => { ph.value = p?.home_pred ?? ''; pa.value = p?.away_pred ?? '' }, { immediate: true })
+watch(myPred, (p) => {
+  ph.value = p?.home_pred ?? ''
+  pa.value = p?.away_pred ?? ''
+  adv.value = p?.advancing_team_id ?? null
+}, { immediate: true })
+
+// A KO match the player has predicted to finish level needs an advancer pick.
+const isKo = computed(() => props.match.stage !== 'group' && !props.match.is_third_place_playoff)
+const predictedDraw = computed(() => ph.value !== '' && pa.value !== '' && Number(ph.value) === Number(pa.value))
+const needsAdvancer = computed(() => isKo.value && predictedDraw.value)
 
 async function savePred() {
   predMsg.value = ''
+  if (needsAdvancer.value && !adv.value) { predMsg.value = 'Pick who advances'; return }
   saving.value = true
   try {
-    await ps.savePrediction(lg.currentLeagueId, props.match.id, Number(ph.value), Number(pa.value))
+    await ps.savePrediction(lg.currentLeagueId, props.match.id, Number(ph.value), Number(pa.value),
+      needsAdvancer.value ? adv.value : null)
     predMsg.value = 'saved'
   } catch (e) { predMsg.value = e.message } finally { saving.value = false }
 }
@@ -70,7 +82,7 @@ const score = computed(() => (myPred.value ? ps.myMatchScore(props.match.id) : n
     <div v-if="!match.is_third_place_playoff" class="mt-3 border-t border-white/5 pt-3">
       <div class="flex items-center justify-between">
         <span class="label">Your prediction</span>
-        <span v-if="score && score.total" class="chip-done">+{{ score.total }} pts</span>
+        <span v-if="score && score.total" class="chip-done">+{{ formatPts(score.total) }} pts</span>
       </div>
       <div class="mt-2 flex items-center gap-2">
         <input class="score-input" type="number" min="0" v-model="ph" :disabled="!canPredict" aria-label="home prediction" />
@@ -82,6 +94,21 @@ const score = computed(() => (myPred.value ? ps.myMatchScore(props.match.id) : n
         <span v-else-if="!home || !away" class="ml-auto text-xs text-muted">Teams TBD</span>
         <span v-else-if="!lg.currentLeagueId" class="ml-auto text-xs text-muted">Join a league</span>
         <span v-else class="ml-auto text-xs text-muted">Locked</span>
+      </div>
+
+      <!-- Drawn KO prediction: who advances on pens/ET -->
+      <div v-if="needsAdvancer" class="mt-2">
+        <div class="label mb-1">Advances (pens/ET)</div>
+        <div class="flex gap-1.5">
+          <button class="btn-ghost btn-sm flex-1" :class="{ '!bg-brand !text-brand-ink': adv === match.home_team_id }"
+            :disabled="!canPredict" @click="adv = match.home_team_id">
+            <FlagImg :code="home?.flag_code" size="w-4" /> {{ homeLabel }}
+          </button>
+          <button class="btn-ghost btn-sm flex-1" :class="{ '!bg-brand !text-brand-ink': adv === match.away_team_id }"
+            :disabled="!canPredict" @click="adv = match.away_team_id">
+            <FlagImg :code="away?.flag_code" size="w-4" /> {{ awayLabel }}
+          </button>
+        </div>
       </div>
       <p v-if="predMsg" class="mt-1 text-xs" :class="predMsg==='saved' ? 'text-brand' : 'text-red-300'">{{ predMsg }}</p>
       <div v-if="score && (score.exact || score.closest)" class="mt-1 text-[11px] text-muted">

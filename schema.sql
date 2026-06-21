@@ -120,9 +120,12 @@ create table if not exists public.predictions (
   match_id   integer not null references public.matches(id) on delete cascade,
   home_pred  integer not null check (home_pred >= 0),
   away_pred  integer not null check (away_pred >= 0),
+  advancing_team_id integer references public.teams(id), -- KO draw: who the player thinks wins on pens/ET
   updated_at timestamptz not null default now(),
   unique (league_id, user_id, match_id)
 );
+-- For DBs created before advancing_team_id existed.
+alter table public.predictions add column if not exists advancing_team_id integer references public.teams(id);
 
 create table if not exists public.group_position_picks (
   id                 uuid primary key default gen_random_uuid(),
@@ -372,8 +375,11 @@ $$;
 -- ============================================================================
 -- WRITE RPCs (the ONLY way clients write predictions / picks)
 -- ============================================================================
+-- Drop the old 4-arg signature so the advancer-aware version below is unambiguous.
+drop function if exists public.save_prediction(uuid, integer, integer, integer);
 create or replace function public.save_prediction(
-  p_league_id uuid, p_match_id integer, p_home integer, p_away integer
+  p_league_id uuid, p_match_id integer, p_home integer, p_away integer,
+  p_advancing integer default null
 ) returns void
 language plpgsql
 security definer set search_path = public
@@ -400,11 +406,14 @@ begin
     raise exception 'Prediction locked for this match';
   end if;
 
-  insert into public.predictions (league_id, user_id, match_id, home_pred, away_pred, updated_at)
-  values (p_league_id, auth.uid(), p_match_id, p_home, p_away, now())
+  -- Only a drawn KO prediction carries an advancer; otherwise store null.
+  insert into public.predictions (league_id, user_id, match_id, home_pred, away_pred, advancing_team_id, updated_at)
+  values (p_league_id, auth.uid(), p_match_id, p_home, p_away,
+          case when p_home = p_away then p_advancing else null end, now())
   on conflict (league_id, user_id, match_id)
   do update set home_pred = excluded.home_pred,
                 away_pred = excluded.away_pred,
+                advancing_team_id = excluded.advancing_team_id,
                 updated_at = now();
 end;
 $$;
@@ -686,7 +695,7 @@ end;
 $$;
 
 -- Grant execute on the write RPCs.
-grant execute on function public.save_prediction(uuid,integer,integer,integer)  to authenticated;
+grant execute on function public.save_prediction(uuid,integer,integer,integer,integer)  to authenticated;
 grant execute on function public.save_group_positions(uuid,text,integer[])       to authenticated;
 grant execute on function public.save_knockout_picks(uuid,text,integer[])        to authenticated;
 grant execute on function public.save_champion_pick(uuid,integer)                to authenticated;

@@ -85,11 +85,42 @@ export const useMatchesStore = defineStore('matches', {
       return suggestions
     },
     async saveResult(matchId, home, away, advancing = null) {
+      const match = this.matchById[matchId]
+      // KO winner: higher score, or the supplied advancer when level (pens/ET).
+      let winner = advancing
+      if (match && match.stage !== 'group') {
+        if (home > away) winner = match.home_team_id
+        else if (away > home) winner = match.away_team_id
+      }
       const { error } = await supabase.rpc('admin_save_result', {
-        p_match_id: matchId, p_home: home, p_away: away, p_advancing: advancing, p_status: 'finished'
+        p_match_id: matchId, p_home: home, p_away: away,
+        p_advancing: match && match.stage !== 'group' ? winner : null, p_status: 'finished'
       })
       if (error) throw error
+      // Push the winner (and, for semis, the loser) into the next round's slot —
+      // one level only; never null out an already-resolved team.
+      if (match && match.stage !== 'group' && winner) {
+        const loser = winner === match.home_team_id ? match.away_team_id : match.home_team_id
+        await this.autoAdvance(match.match_no, winner, loser)
+      }
       await this.load()
+    },
+    // Resolve the next match(es) that reference this match via W{n}/L{n}.
+    async autoAdvance(matchNo, winner, loser) {
+      const wTag = `W${matchNo}`
+      const lTag = `L${matchNo}`
+      for (const nx of this.matches) {
+        const homeFill = nx.home_placeholder === wTag ? winner : nx.home_placeholder === lTag ? loser : null
+        const awayFill = nx.away_placeholder === wTag ? winner : nx.away_placeholder === lTag ? loser : null
+        if (homeFill == null && awayFill == null) continue
+        // Keep the side we're not filling at its current value (may be null).
+        const h = homeFill != null ? homeFill : nx.home_team_id
+        const a = awayFill != null ? awayFill : nx.away_team_id
+        const { error } = await supabase.rpc('admin_set_ko_teams', {
+          p_match_id: nx.id, p_home_team: h ?? null, p_away_team: a ?? null
+        })
+        if (error) throw error
+      }
     },
     async setMatchLock(matchId, locked) {
       const { error } = await supabase.rpc('admin_set_match_lock', { p_match_id: matchId, p_locked: locked })

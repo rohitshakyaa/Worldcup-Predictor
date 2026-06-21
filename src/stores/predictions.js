@@ -85,6 +85,8 @@ export const usePredictionsStore = defineStore('predictions', {
       const ms = useMatchesStore()
       const final = ms.matches.find((m) => m.stage === 'final')
       if (!final || !matchFinished(final)) return null
+      // A final level at 90' is decided on pens/ET — the admin records the winner.
+      if (final.home_score === final.away_score) return final.advancing_team_id ?? null
       return final.home_score > final.away_score ? final.home_team_id : final.away_team_id
     },
 
@@ -229,9 +231,9 @@ export const usePredictionsStore = defineStore('predictions', {
       this.predictions = []; this.groupPicks = []; this.knockoutPicks = []
       this.championPicks = []; this.bracketPicks = []; this.thirdSlotPicks = []
     },
-    async savePrediction(leagueId, matchId, home, away) {
+    async savePrediction(leagueId, matchId, home, away, advancing = null) {
       const { error } = await supabase.rpc('save_prediction', {
-        p_league_id: leagueId, p_match_id: matchId, p_home: home, p_away: away
+        p_league_id: leagueId, p_match_id: matchId, p_home: home, p_away: away, p_advancing: advancing
       })
       if (error) throw error
       await this.loadForLeague(leagueId)

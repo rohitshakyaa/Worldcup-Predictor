@@ -23,6 +23,16 @@ export function resultOf(h, a) {
   return h > a ? 'H' : 'A'
 }
 
+// Knockout stages (everything except group + the non-scoring 3rd-place playoff).
+const KO_STAGES = new Set(['r32', 'r16', 'qf', 'sf', 'final'])
+
+// Render a points value, allowing the .5 produced by the KO-draw rule but
+// dropping a trailing .0 (e.g. 5 -> "5", 2.5 -> "2.5").
+export function formatPts(n) {
+  if (n == null) return '0'
+  return Number.isInteger(n) ? String(n) : n.toFixed(1).replace(/\.0$/, '')
+}
+
 export function matchFinished(m) {
   return m && m.status === 'finished' && m.home_score != null && m.away_score != null
 }
@@ -40,7 +50,13 @@ export function scorePrediction(pred, match) {
   const predA = pred.away_pred
 
   // Base: predicted result (W/D/L) matches actual (90-min result as entered).
-  const base = resultOf(predH, predA) === resultOf(actH, actA) ? stagePts : 0
+  let base = resultOf(predH, predA) === resultOf(actH, actA) ? stagePts : 0
+
+  // KO draw decided on pens/ET: a correct draw earns full points only if the
+  // player also nailed who advanced; a wrong/missing advancer earns half.
+  if (base && actH === actA && KO_STAGES.has(match.stage) && match.advancing_team_id != null) {
+    if (pred.advancing_team_id !== match.advancing_team_id) base = stagePts * 0.5
+  }
 
   const homeRight = predH === actH
   const awayRight = predA === actA

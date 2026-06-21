@@ -7,6 +7,7 @@ import { usePredictionsStore } from '../stores/predictions.js'
 import { useLeaguesStore } from '../stores/leagues.js'
 import { useAuthStore } from '../stores/auth.js'
 import { useMatchesStore } from '../stores/matches.js'
+import { formatPts } from '../lib/scoring.js'
 
 const ps = usePredictionsStore()
 const lg = useLeaguesStore()
@@ -54,7 +55,7 @@ const initials = (n) => (n || '?').split(/\s+/).map((w) => w[0]).slice(0, 2).joi
                       class="absolute -top-2 -right-1" :class="medalColor[p.place]" />
               </div>
               <div class="mt-1 max-w-full truncate text-xs font-semibold">{{ p.row.name }}</div>
-              <div class="stat-num text-brand" :class="p.place===1 ? 'text-2xl' : 'text-lg'">{{ p.row.total }}</div>
+              <div class="stat-num text-brand" :class="p.place===1 ? 'text-2xl' : 'text-lg'">{{ formatPts(p.row.total) }}</div>
               <div class="flex w-full items-center justify-center rounded-t-lg bg-white/[0.06] font-display font-bold text-muted"
                    :class="p.place===1 ? 'h-16 text-3xl' : (p.place===2 ? 'h-12 text-xl' : 'h-8 text-lg')"
                    :style="{ boxShadow: 'inset 0 2px 0 rgba(255,255,255,0.06)' }">{{ p.place }}</div>
@@ -82,10 +83,10 @@ const initials = (n) => (n || '?').split(/\s+/).map((w) => w[0]).slice(0, 2).joi
                 {{ r.name }}<span v-if="r.userId === me" class="ml-1 chip-done">you</span>
               </td>
               <td class="py-2.5 px-1 text-center stat-num text-muted">{{ r.group }}</td>
-              <td class="py-2.5 px-1 text-center stat-num text-muted">{{ r.knockout }}</td>
+              <td class="py-2.5 px-1 text-center stat-num text-muted">{{ formatPts(r.knockout) }}</td>
               <td class="py-2.5 px-1 text-center stat-num text-muted" :class="{ 'opacity-50 italic': !countAdv }">{{ r.advances }}</td>
               <td class="py-2.5 px-1 text-center stat-num text-muted">{{ r.champion }}</td>
-              <td class="py-2.5 pr-4 text-center stat-num text-lg font-bold text-brand">{{ r.total }}</td>
+              <td class="py-2.5 pr-4 text-center stat-num text-lg font-bold text-brand">{{ formatPts(r.total) }}</td>
             </tr>
             <tr v-if="!rows.length"><td colspan="7" class="py-6 text-center text-muted">No members yet.</td></tr>
           </tbody>

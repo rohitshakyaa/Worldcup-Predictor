@@ -6,7 +6,7 @@ import { usePredictionsStore } from '../stores/predictions.js'
 import { useAuthStore } from '../stores/auth.js'
 import FlagImg from '../components/FlagImg.vue'
 import { formatDate } from '../lib/time.js'
-import { matchFinished } from '../lib/scoring.js'
+import { matchFinished, formatPts } from '../lib/scoring.js'
 
 const ms = useMatchesStore()
 const ps = usePredictionsStore()
@@ -37,11 +37,11 @@ const team = (id) => ms.teamById[id]
       <h2 class="font-display text-2xl font-bold">My picks</h2>
       <div class="mt-2 grid grid-cols-4 gap-2 text-center">
         <div><div class="text-xl font-bold">{{ myTotal.group }}</div><div class="label">Group</div></div>
-        <div><div class="text-xl font-bold">{{ myTotal.knockout }}</div><div class="label">Knockout</div></div>
+        <div><div class="text-xl font-bold">{{ formatPts(myTotal.knockout) }}</div><div class="label">Knockout</div></div>
         <div><div class="text-xl font-bold">{{ myTotal.advances }}</div><div class="label">Advances</div></div>
         <div><div class="text-xl font-bold">{{ myTotal.champion }}</div><div class="label">Champion</div></div>
       </div>
-      <div class="mt-2 text-center text-2xl font-extrabold text-brand">{{ myTotal.total }} pts</div>
+      <div class="mt-2 text-center text-2xl font-extrabold text-brand">{{ formatPts(myTotal.total) }} pts</div>
     </div>
 
     <div v-if="!myRows.length" class="card p-4 text-sm text-muted">
@@ -52,7 +52,7 @@ const team = (id) => ms.teamById[id]
       <div v-for="row in myRows" :key="row.m.id" class="card p-2.5">
         <div class="flex items-center justify-between text-xs text-muted">
           <span>{{ formatDate(row.m.kickoff_utc) }} · {{ row.m.round }}</span>
-          <span v-if="row.score && row.score.total" class="chip-done">+{{ row.score.total }}</span>
+          <span v-if="row.score && row.score.total" class="chip-done">+{{ formatPts(row.score.total) }}</span>
         </div>
         <div class="mt-1 flex items-center gap-2 text-sm">
           <FlagImg :code="team(row.m.home_team_id)?.flag_code" size="w-5" />

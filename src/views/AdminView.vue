@@ -48,10 +48,22 @@ const stageMatches = computed(() => {
 })
 const team = (id) => ms.teamById[id]
 
+// KO advancer (pens/ET): only needed when an entered KO score is level.
+const koAdvance = ref({}) // matchId -> teamId
+const isKoStage = (m) => m.stage !== 'group'
+function isDrawEntered(m) {
+  const s = scores.value[m.id]
+  return s && s.h !== '' && s.a !== '' && Number(s.h) === Number(s.a)
+}
+function needsAdvancer(m) {
+  return isKoStage(m) && !m.is_third_place_playoff && isDrawEntered(m)
+}
+
 async function saveResult(m) {
   const s = scores.value[m.id]
+  if (needsAdvancer(m) && !koAdvance.value[m.id]) { notify('Pick who advanced (pens/ET)'); return }
   await guard(async () => {
-    await ms.saveResult(m.id, Number(s.h), Number(s.a))
+    await ms.saveResult(m.id, Number(s.h), Number(s.a), needsAdvancer(m) ? koAdvance.value[m.id] : null)
     notify(`#${m.match_no} saved`)
   })
 }
@@ -72,15 +84,23 @@ async function applyAll() {
 
 // KO team resolution
 const koResolve = ref({}) // matchId -> {home, away}
+const editingTeams = ref({}) // matchId -> bool (re-editing an already-resolved fixture)
 function setKo(id, side, val) {
   const cur = koResolve.value[id] || {}
   koResolve.value = { ...koResolve.value, [id]: { ...cur, [side]: val ? Number(val) : undefined } }
+}
+// Open the resolve dropdowns for a fixture whose teams are already set, so a
+// wrong matchup (e.g. a mis-routed third) can be corrected.
+function startEditTeams(m) {
+  koResolve.value = { ...koResolve.value, [m.id]: { home: m.home_team_id, away: m.away_team_id } }
+  editingTeams.value = { ...editingTeams.value, [m.id]: true }
 }
 async function resolveKo(m) {
   const r = koResolve.value[m.id] || {}
   if (!r.home || !r.away) { notify('Pick both teams'); return }
   await guard(async () => {
     await ms.setKoTeams(m.id, r.home, r.away)
+    editingTeams.value = { ...editingTeams.value, [m.id]: false }
     notify(`#${m.match_no} teams set`)
   })
 }
@@ -157,22 +177,38 @@ const memberName = (m) => m.profiles?.display_name || m.profiles?.email || m.use
             <span v-if="matchFinished(m)" class="chip-done"><Icon name="check" :size="11" /> final</span>
           </div>
 
-          <!-- resolved teams: score entry -->
-          <div v-if="m.home_team_id && m.away_team_id" class="mt-1.5 flex items-center gap-2">
-            <div class="flex min-w-0 flex-1 items-center gap-1.5">
-              <FlagImg :code="team(m.home_team_id)?.flag_code" size="w-5" />
-              <span class="truncate text-sm">{{ team(m.home_team_id)?.name }}</span>
+          <!-- resolved teams (and not re-editing): score entry -->
+          <div v-if="m.home_team_id && m.away_team_id && !editingTeams[m.id]">
+            <div class="mt-1.5 flex items-center gap-2">
+              <div class="flex min-w-0 flex-1 items-center gap-1.5">
+                <FlagImg :code="team(m.home_team_id)?.flag_code" size="w-5" />
+                <span class="truncate text-sm">{{ team(m.home_team_id)?.name }}</span>
+              </div>
+              <input class="score-input" type="number" min="0" v-model="ensureScore(m).h" :aria-label="`${team(m.home_team_id)?.name} score`" />
+              <input class="score-input" type="number" min="0" v-model="ensureScore(m).a" :aria-label="`${team(m.away_team_id)?.name} score`" />
+              <div class="flex min-w-0 flex-1 items-center justify-end gap-1.5">
+                <span class="truncate text-right text-sm">{{ team(m.away_team_id)?.name }}</span>
+                <FlagImg :code="team(m.away_team_id)?.flag_code" size="w-5" />
+              </div>
+              <button class="btn-brand btn-sm" @click="saveResult(m)"><Icon name="check" :size="14" /></button>
             </div>
-            <input class="score-input" type="number" min="0" v-model="ensureScore(m).h" :aria-label="`${team(m.home_team_id)?.name} score`" />
-            <input class="score-input" type="number" min="0" v-model="ensureScore(m).a" :aria-label="`${team(m.away_team_id)?.name} score`" />
-            <div class="flex min-w-0 flex-1 items-center justify-end gap-1.5">
-              <span class="truncate text-right text-sm">{{ team(m.away_team_id)?.name }}</span>
-              <FlagImg :code="team(m.away_team_id)?.flag_code" size="w-5" />
+
+            <!-- drawn KO: who advanced on pens/ET -->
+            <div v-if="needsAdvancer(m)" class="mt-1.5 flex items-center gap-1.5">
+              <span class="text-xs text-muted shrink-0">Advanced:</span>
+              <button class="btn-ghost btn-sm flex-1" :class="{ '!bg-brand !text-brand-ink': (koAdvance[m.id] ?? m.advancing_team_id) === m.home_team_id }"
+                @click="koAdvance = { ...koAdvance, [m.id]: m.home_team_id }">{{ team(m.home_team_id)?.name }}</button>
+              <button class="btn-ghost btn-sm flex-1" :class="{ '!bg-brand !text-brand-ink': (koAdvance[m.id] ?? m.advancing_team_id) === m.away_team_id }"
+                @click="koAdvance = { ...koAdvance, [m.id]: m.away_team_id }">{{ team(m.away_team_id)?.name }}</button>
             </div>
-            <button class="btn-brand btn-sm" @click="saveResult(m)"><Icon name="check" :size="14" /></button>
+
+            <!-- correct a mis-routed / wrong KO matchup -->
+            <div v-if="isKoStage(m)" class="mt-1.5">
+              <button class="btn-ghost btn-sm text-xs" @click="startEditTeams(m)"><Icon name="pencil" :size="12" /> Edit teams</button>
+            </div>
           </div>
 
-          <!-- unresolved KO fixture: resolve teams -->
+          <!-- unresolved KO fixture, or re-editing a resolved one: resolve teams -->
           <div v-else class="mt-1.5 space-y-1.5">
             <div class="text-xs text-muted">{{ m.home_placeholder }} vs {{ m.away_placeholder }} — resolve teams:</div>
             <div class="flex items-center gap-1.5">
@@ -185,6 +221,7 @@ const memberName = (m) => m.profiles?.display_name || m.profiles?.email || m.use
                 <option v-for="t in ms.teams" :key="t.id" :value="t.id">{{ t.name }}</option>
               </select>
               <button class="btn-ghost btn-sm" @click="resolveKo(m)">Set</button>
+              <button v-if="editingTeams[m.id]" class="btn-ghost btn-sm" @click="editingTeams = { ...editingTeams, [m.id]: false }">Cancel</button>
             </div>
           </div>
         </div>
