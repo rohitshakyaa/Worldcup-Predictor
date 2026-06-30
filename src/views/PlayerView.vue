@@ -8,7 +8,10 @@ import { useAuthStore } from '../stores/auth.js'
 import FlagImg from '../components/FlagImg.vue'
 import AdvChip from '../components/AdvChip.vue'
 import { formatDate } from '../lib/time.js'
-import { matchFinished, formatPts, ADVANCE_PTS, THIRD_QUALIFY_PTS, KO_REACH_PTS, THIRD_PLACE_WIN_PTS, CHAMPION_PTS } from '../lib/scoring.js'
+import {
+  matchFinished, formatPts, ADVANCE_PTS, THIRD_QUALIFY_PTS, KO_REACH_PTS, THIRD_PLACE_WIN_PTS, CHAMPION_PTS,
+  predictedWinnerId, actualWinnerId
+} from '../lib/scoring.js'
 
 const KO_STAGES = ['r32', 'r16', 'qf', 'sf', 'final']
 const KO_LABEL = { r32: 'Round of 32', r16: 'Round of 16', qf: 'Quarter-finals', sf: 'Semi-finals', final: 'Final' }
@@ -41,7 +44,14 @@ const lockedRows = computed(() => {
   for (const m of ms.matches) {
     const p = preds[m.id]
     if (!p || !ms.isLocked(m)) continue
-    out.push({ m, p, score: ps.matchScoreFor(userId.value, m.id) })
+    const isKo = m.stage !== 'group'
+    out.push({
+      m,
+      p,
+      score: ps.matchScoreFor(userId.value, m.id),
+      youBacked: isKo ? predictedWinnerId(p, m) : null,
+      actualWinner: isKo ? actualWinnerId(m) : null
+    })
   }
   return out.sort((a, b) => new Date(b.m.kickoff_utc) - new Date(a.m.kickoff_utc))
 })
@@ -151,6 +161,26 @@ function thirdPlaceState(m) {
           </div>
           <div v-if="matchFinished(row.m)" class="mt-0.5 text-center text-xs text-muted">
             actual {{ row.m.home_score }}–{{ row.m.away_score }}
+          </div>
+
+          <!-- Who they backed to win, and who actually won — covers straight
+               win/loss predictions (implied by scoreline) as well as explicit
+               draw advancer picks, and the actual winner whether decided in
+               90' or on pens/ET. -->
+          <div v-if="row.youBacked || row.actualWinner" class="mt-1.5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 border-t border-white/10 pt-1.5 text-xs">
+            <span v-if="row.youBacked" class="flex items-center gap-1">
+              <span class="text-muted">Backed:</span>
+              <FlagImg :code="team(row.youBacked)?.flag_code" size="w-4" />
+              <span class="font-semibold">{{ team(row.youBacked)?.name }}</span>
+            </span>
+            <span v-if="row.actualWinner" class="flex items-center gap-1">
+              <span class="text-muted">Actual winner:</span>
+              <FlagImg :code="team(row.actualWinner)?.flag_code" size="w-4" />
+              <span
+                class="font-semibold"
+                :class="row.youBacked && row.youBacked === row.actualWinner ? 'text-emerald-400' : ''"
+              >{{ team(row.actualWinner)?.name }}</span>
+            </span>
           </div>
         </div>
       </div>

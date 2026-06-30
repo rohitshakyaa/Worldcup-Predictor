@@ -50,7 +50,10 @@ export function matchFinished(m) {
 // Resolve the team a PREDICTION implies will win:
 // - predicted a straight win/loss → implied by which side has the higher score.
 // - predicted a draw → only meaningful if they also picked an advancer.
-function predictedWinnerId(pred, match) {
+// Exported so the UI can show "who you backed" even for non-draw predictions,
+// where there's no explicit advancing_team_id on the pick.
+export function predictedWinnerId(pred, match) {
+  if (!pred || !match) return null
   const r = resultOf(pred.home_pred, pred.away_pred)
   if (r === 'H') return match.home_team_id
   if (r === 'A') return match.away_team_id
@@ -60,7 +63,10 @@ function predictedWinnerId(pred, match) {
 // Resolve who ACTUALLY won:
 // - decisive 90' result → implied by which side scored more.
 // - level after 90' → decided on pens/ET, recorded as advancing_team_id.
-function actualWinnerId(match) {
+// Exported so the UI can show the real winner even for matches that didn't
+// need penalties (where match.advancing_team_id is never set).
+export function actualWinnerId(match) {
+  if (!match || !matchFinished(match)) return null
   const { home_score: h, away_score: a } = match
   if (h !== a) return h > a ? match.home_team_id : match.away_team_id
   return match.advancing_team_id ?? null

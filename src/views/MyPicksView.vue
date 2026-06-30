@@ -6,7 +6,7 @@ import { usePredictionsStore } from '../stores/predictions.js'
 import { useAuthStore } from '../stores/auth.js'
 import FlagImg from '../components/FlagImg.vue'
 import { formatDate } from '../lib/time.js'
-import { matchFinished, formatPts } from '../lib/scoring.js'
+import { matchFinished, formatPts, predictedWinnerId, actualWinnerId } from '../lib/scoring.js'
 
 const ms = useMatchesStore()
 const ps = usePredictionsStore()
@@ -18,7 +18,14 @@ const myRows = computed(() => {
   for (const m of ms.matches) {
     const p = ps.myPredByMatch[m.id]
     if (!p) continue
-    out.push({ m, p, score: ps.myMatchScore(m.id) })
+    const isKo = m.stage !== 'group'
+    out.push({
+      m,
+      p,
+      score: ps.myMatchScore(m.id),
+      youBacked: isKo ? predictedWinnerId(p, m) : null,
+      actualWinner: isKo ? actualWinnerId(m) : null
+    })
   }
   // Latest kickoff first (no round grouping).
   return out.sort((a, b) => new Date(b.m.kickoff_utc) - new Date(a.m.kickoff_utc))
@@ -63,6 +70,25 @@ const team = (id) => ms.teamById[id]
         </div>
         <div v-if="matchFinished(row.m)" class="mt-0.5 text-center text-xs text-muted">
           actual {{ row.m.home_score }}–{{ row.m.away_score }}
+        </div>
+
+        <!-- Who you backed to win, and who actually won — covers straight win/loss
+             predictions (implied by scoreline) as well as explicit draw advancer
+             picks, and the actual winner whether decided in 90' or on pens/ET. -->
+        <div v-if="row.youBacked || row.actualWinner" class="mt-1.5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 border-t border-white/10 pt-1.5 text-xs">
+          <span v-if="row.youBacked" class="flex items-center gap-1">
+            <span class="text-muted">You backed:</span>
+            <FlagImg :code="team(row.youBacked)?.flag_code" size="w-4" />
+            <span class="font-semibold">{{ team(row.youBacked)?.name }}</span>
+          </span>
+          <span v-if="row.actualWinner" class="flex items-center gap-1">
+            <span class="text-muted">Actual winner:</span>
+            <FlagImg :code="team(row.actualWinner)?.flag_code" size="w-4" />
+            <span
+              class="font-semibold"
+              :class="row.youBacked && row.youBacked === row.actualWinner ? 'text-emerald-400' : ''"
+            >{{ team(row.actualWinner)?.name }}</span>
+          </span>
         </div>
       </div>
     </div>
