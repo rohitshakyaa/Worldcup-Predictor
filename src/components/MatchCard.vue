@@ -6,7 +6,7 @@ import { useMatchesStore } from '../stores/matches.js'
 import { usePredictionsStore } from '../stores/predictions.js'
 import { useLeaguesStore } from '../stores/leagues.js'
 import { formatKickoff } from '../lib/time.js'
-import { matchFinished, formatPts } from '../lib/scoring.js'
+import { matchFinished, formatPts, actualWinnerId } from '../lib/scoring.js'
 
 const props = defineProps({ match: { type: Object, required: true } })
 
@@ -21,6 +21,11 @@ const awayLabel = computed(() => away.value?.name || props.match.away_placeholde
 const locked = computed(() => ms.isLocked(props.match))
 const finished = computed(() => matchFinished(props.match))
 const canPredict = computed(() => home.value && away.value && !locked.value && lg.currentLeagueId)
+
+// The actual winner once decided — works for a clean 90' result and for a
+// level scoreline resolved on pens/ET (via match.advancing_team_id).
+const winnerId = computed(() => (finished.value ? actualWinnerId(props.match) : null))
+const wentToPens = computed(() => finished.value && props.match.home_score === props.match.away_score && winnerId.value != null)
 
 const myPred = computed(() => ps.myPredByMatch[props.match.id])
 const ph = ref('')
@@ -66,17 +71,18 @@ const score = computed(() => (myPred.value ? ps.myMatchScore(props.match.id) : n
     <div class="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
       <div class="flex items-center gap-2 min-w-0">
         <FlagImg :code="home?.flag_code" />
-        <span class="truncate font-semibold">{{ homeLabel }}</span>
+        <span class="truncate font-semibold" :class="winnerId && winnerId === match.home_team_id ? 'text-emerald-400' : ''">{{ homeLabel }}</span>
       </div>
       <div class="text-center font-display text-2xl font-bold tabular-nums leading-none">
         <span v-if="finished" class="text-brand">{{ match.home_score }}<span class="text-muted">–</span>{{ match.away_score }}</span>
         <span v-else class="text-xs text-muted">vs</span>
       </div>
       <div class="flex items-center justify-end gap-2 min-w-0">
-        <span class="truncate text-right font-semibold">{{ awayLabel }}</span>
+        <span class="truncate text-right font-semibold" :class="winnerId && winnerId === match.away_team_id ? 'text-emerald-400' : ''">{{ awayLabel }}</span>
         <FlagImg :code="away?.flag_code" />
       </div>
     </div>
+    <div v-if="wentToPens" class="mt-0.5 text-center text-[10px] text-muted">won on penalties/ET</div>
 
     <!-- Prediction -->
     <div class="mt-3 border-t border-white/5 pt-3">
