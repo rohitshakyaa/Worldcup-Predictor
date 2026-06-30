@@ -17,6 +17,14 @@ export const KO_REACH_PTS = { r16: 2, qf: 3, sf: 4, final: 5 }
 export const THIRD_QUALIFY_PTS = 3        // each correctly-predicted best-8 third
 export const THIRD_PLACE_WIN_PTS = 7      // correctly picking the 3rd-place play-off winner
 
+// Consolation points for a knockout prediction: the predicted 90'-result TYPE
+// is wrong (e.g. you called a draw but it was a decisive win, or you called a
+// win but it actually finished level and went to pens/ET) — but the team you
+// backed to advance is still the team that actually went through. Smaller
+// than the half-credit "correct draw, wrong advancer" case, since you got the
+// scoreline shape wrong entirely.
+export const WRONG_RESULT_RIGHT_WINNER_PTS = 2
+
 const POSITION_SLOT_PTS = 1
 
 export function resultOf(h, a) {
@@ -39,6 +47,25 @@ export function matchFinished(m) {
   return m && m.status === 'finished' && m.home_score != null && m.away_score != null
 }
 
+// Resolve the team a PREDICTION implies will win:
+// - predicted a straight win/loss → implied by which side has the higher score.
+// - predicted a draw → only meaningful if they also picked an advancer.
+function predictedWinnerId(pred, match) {
+  const r = resultOf(pred.home_pred, pred.away_pred)
+  if (r === 'H') return match.home_team_id
+  if (r === 'A') return match.away_team_id
+  return pred.advancing_team_id ?? null
+}
+
+// Resolve who ACTUALLY won:
+// - decisive 90' result → implied by which side scored more.
+// - level after 90' → decided on pens/ET, recorded as advancing_team_id.
+function actualWinnerId(match) {
+  const { home_score: h, away_score: a } = match
+  if (h !== a) return h > a ? match.home_team_id : match.away_team_id
+  return match.advancing_team_id ?? null
+}
+
 // Score a single prediction against a finished match.
 // Returns { base, exact, closest, total }. Scored on the 90-minute result for
 // every match, including the third-place play-off.
@@ -52,13 +79,23 @@ export function scorePrediction(pred, match) {
   const predH = pred.home_pred
   const predA = pred.away_pred
 
-  // Base: predicted result (W/D/L) matches actual (90-min result as entered).
-  let base = resultOf(predH, predA) === resultOf(actH, actA) ? stagePts : 0
+  const predResult = resultOf(predH, predA)
+  const actResult = resultOf(actH, actA)
+  let base = predResult === actResult ? stagePts : 0
 
   // KO draw decided on pens/ET: a correct draw earns full points only if the
   // player also nailed who advanced; a wrong/missing advancer earns half.
-  if (base && actH === actA && KO_STAGES.has(match.stage) && match.advancing_team_id != null) {
+  const wentToPens = actH === actA && KO_STAGES.has(match.stage) && match.advancing_team_id != null
+
+  if (base && wentToPens) {
     if (pred.advancing_team_id !== match.advancing_team_id) base = stagePts * 0.5
+  } else if (!base && KO_STAGES.has(match.stage)) {
+    // Wrong 90'-result TYPE in either direction (predicted draw but it was
+    // decisive, or predicted decisive but it went to pens/ET) — give partial
+    // credit if the team backed to win is still the team that actually won.
+    const predWinner = predictedWinnerId(pred, match)
+    const actWinner = actualWinnerId(match)
+    if (predWinner != null && predWinner === actWinner) base = WRONG_RESULT_RIGHT_WINNER_PTS
   }
 
   const homeRight = predH === actH
