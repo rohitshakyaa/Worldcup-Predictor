@@ -45,7 +45,7 @@ const bracketMaxTotal = advancersMax + thirdsMax + reachMax + thirdPlaceMax + ch
     <!-- Match score predictions -->
     <div class="card p-3 space-y-2">
       <h3 class="font-bold">1 · Match predictions</h3>
-      <p class="text-sm">Predict the score of any match before it kicks off. You score on the <strong>90-minute result</strong> (the result the admin enters; extra-time/penalties don't count toward scoring) — except for the partial credit described below.</p>
+      <p class="text-sm">Predict the score of any match before it kicks off. You score on the <strong>90-minute result</strong> (the result the admin enters; extra-time/penalties don't directly count toward scoring, but they can unlock the partial credit described below).</p>
       <table class="w-full text-sm">
         <thead>
           <tr class="text-left text-xs text-muted">
@@ -69,10 +69,16 @@ const bracketMaxTotal = advancersMax + thirdsMax + reachMax + thirdPlaceMax + ch
         <ul class="mt-1 space-y-1">
           <li>✅ Correct draw <strong>+ correct team advances</strong> → <strong>full</strong> round points.</li>
           <li>½ Correct draw <strong>but wrong team advances</strong> → <strong>half</strong> the round points (e.g. R32 2.5, Final 8.5).</li>
-          <li>🎟️ Predicted a <strong>straight win/loss</strong> (not a draw) and the match actually went to penalties — if the team you backed to win is the one who <strong>actually advanced</strong>, you still get <strong>+{{ WRONG_RESULT_RIGHT_WINNER_PTS }}</strong> consolation points, even though your 90' result type was wrong. Goal-difference closest/exact bonuses can still apply on top of this.</li>
+          <li>🎟️ <strong>Got the 90' result type wrong, but backed the right team to win</strong> → <strong>+{{ WRONG_RESULT_RIGHT_WINNER_PTS }}</strong> consolation points. This covers both directions:
+            <ul class="mt-0.5 ml-4 list-disc space-y-0.5">
+              <li>You predicted a <strong>win/loss</strong> but it actually finished level and was decided on penalties/extra time — and your team still went through.</li>
+              <li>You predicted a <strong>draw</strong> (with an advancer pick) but it actually finished as a <strong>decisive result</strong> — and your picked advancer was the actual winner.</li>
+            </ul>
+            Goal-difference exact/closest bonuses can still apply on top of this.
+          </li>
           <li>The exact &amp; closest goal bonuses are unaffected. Group games and the third-place play-off never need an advancer.</li>
         </ul>
-        <p class="mt-1 text-[11px] text-muted">Example: actual 90' is 1–1, decided on penalties by Morocco. You predicted Morocco 2–1 (a straight win, not a draw). You score +{{ WRONG_RESULT_RIGHT_WINNER_PTS }} for backing the right team, plus +{{ CLOSEST_BONUS }} closest (your away score of 1 matches) — {{ WRONG_RESULT_RIGHT_WINNER_PTS + CLOSEST_BONUS }} points total.</p>
+        <p class="mt-1 text-[11px] text-muted">Example: actual 90' is 1–1, decided on penalties by Morocco. You predicted Morocco 2–1 (a straight win, not a draw). You score +{{ WRONG_RESULT_RIGHT_WINNER_PTS }} for backing the right team, plus +{{ CLOSEST_BONUS }} closest (your away score of 1 matches) — {{ WRONG_RESULT_RIGHT_WINNER_PTS + CLOSEST_BONUS }} points total. The same +{{ WRONG_RESULT_RIGHT_WINNER_PTS }} also applies in reverse: predict a 1–1 draw with Morocco to advance, and the actual is a decisive 2–1 Morocco win.</p>
       </div>
     </div>
 
